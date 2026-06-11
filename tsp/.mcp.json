@@ -1,0 +1,8 @@
+{
+	"mcpServers": {
+		"tsp": {
+			"type": "http",
+			"url": "https://treestructuredplanning.com/mcp/"
+		}
+	}
+}
