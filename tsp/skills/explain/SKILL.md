@@ -6,11 +6,10 @@ description: Return a coherent answer about a TSP plan topic — which nodes gov
 # tsp:explain
 
 Return a coherent answer about a TSP plan topic: which nodes govern
-the topic, how they relate, and where the gaps are. V1 backs this
-with a keyword search path; the future indexing initiative plugs a
-hybrid embedding plus rerank path into the same `SemanticSearchPort`
-without changing the tool surface — the harness behavior here stays
-identical.
+the topic, how they relate, and where the gaps are.
+`tsp.plan.semantic_search` surfaces the most relevant nodes for the
+topic; enrich the top hits with their execution context to ground
+the answer.
 
 ## Capability
 
@@ -92,12 +91,11 @@ Open gaps / low-confidence areas:
 
 ## Blocking conditions
 
-| Condition               | Skill behavior                                                                                         |
-| ----------------------- | ------------------------------------------------------------------------------------------------------ |
-| No hits                 | Fall back to `tsp.nodes.search` with the same terms. Say no strong match found if still empty.         |
-| Only coarse parent hits | Explain at the parent level and list its children to inspect next.                                     |
-| Edges sparse            | Say relationship semantics are under-modeled and lean on tree context (parent + ancestors).            |
-| V1 keyword-only warning | Pass through the `search_mode="keyword"` warning so the user knows results aren't semantically ranked. |
+| Condition               | Skill behavior                                                                                 |
+| ----------------------- | ---------------------------------------------------------------------------------------------- |
+| No hits                 | Fall back to `tsp.nodes.search` with the same terms. Say no strong match found if still empty. |
+| Only coarse parent hits | Explain at the parent level and list its children to inspect next.                             |
+| Edges sparse            | Say relationship semantics are under-modeled and lean on tree context (parent + ancestors).    |
 
 ## State writes
 

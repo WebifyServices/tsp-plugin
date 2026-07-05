@@ -35,9 +35,13 @@ Y.js room.
 - `tsp.context.get` — resolve session-scoped plan and branch defaults.
 - `tsp.implement.prepare` — build the brief and routing decision.
 - `tsp.workflow.record_start` — claim the active session before work
-  begins.
-- `tsp.workflow.record_result` — write the terminal status (and
-  optional in-progress checkpoints) once tests pass.
+  begins. This lights the live-session indicator on the canvas and makes
+  closing the session your responsibility.
+- `tsp.workflow.record_result` — **required** to close the session: write
+  the terminal status (and optional in-progress checkpoints) the moment
+  work finishes OR is abandoned. It is not an optional courtesy. Skipping
+  it leaves the node falsely shown as live and stuck `in_progress` until a
+  server-side inactivity timeout force-expires the session.
 
 For non-atomic nodes the skill calls `tsp.implement.prepare` again
 per leaf so each leaf gets its own brief and routing pass.
@@ -143,3 +147,12 @@ in progress, transitions to `blocked`, or transitions to `complete`,
 and clears the active session for terminal outcomes. Status writes
 flow through `PlanRepository` so the canvas reflects the change
 immediately via the plan's Y.js room.
+
+A claimed session is a promise to close it. The active session id drives
+the canvas live-session indicator, so every `record_start` must be paired
+with a `record_result` on completion or abandonment — otherwise the node
+keeps showing as live. As a safety net for crashed or cut-off sessions, a
+server-side reaper auto-expires any session with no activity past an
+inactivity TTL (clearing the indicator and stamping an expiry marker so
+the auto-closed session stays distinguishable from a clean close), but
+that is a backstop, not a substitute for closing the session yourself.

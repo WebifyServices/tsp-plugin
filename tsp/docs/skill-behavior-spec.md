@@ -1,10 +1,10 @@
 # Harness-portable skill behavior spec
 
 This document describes the V1 TSP coding-agent skills as a contract
-that any MCP-aware harness can implement. The Claude Code plugin in
-this repo is the first packaging; Cursor, Codex, Cline, and other
-harnesses can re-implement these skills without changing the
-underlying MCP tool contracts.
+that any MCP-aware harness can implement. The plugin in this repo
+ships that contract in Claude Code, Cursor, and Codex as equal
+packagings; Cline and other MCP-aware harnesses can re-implement
+these skills without changing the underlying MCP tool contracts.
 
 The spec is organized so each skill has the same section structure:
 capability, inputs, required MCP tools, local filesystem
@@ -50,8 +50,13 @@ Blocking conditions: routing returns `blocked` (show blockers, exit),
 `needs_refinement` (show missing prerequisites, exit), or
 `subtree_too_large` (recommend narrower target).
 
-State writes: `record_start` claims `in_progress`; `record_result`
-writes `complete` / `in_progress` / `blocked` based on AC + tests.
+State writes: `record_start` claims `in_progress` and lights the canvas
+live-session indicator; `record_result` writes `complete` / `in_progress`
+/ `blocked` based on AC + tests. `record_result` is required to close the
+session on completion or abandonment, not optional — an unclosed session
+shows the node as live until a server-side inactivity-TTL reaper
+force-expires it (clearing the indicator and stamping an `expired_at`
+marker so the auto-close stays distinguishable from a clean one).
 
 ### `explain`
 
@@ -59,7 +64,7 @@ Capability: explain a topic against the plan. Names the governing
 nodes, surfaces tree context, lists relationships, calls out gaps.
 
 Required MCP tools: `tsp.context.get`,
-`tsp.plan.semantic_search` (V1 keyword-backed),
+`tsp.plan.semantic_search` (keyword-backed),
 `tsp.node.execution_context`, optionally `tsp.edges.list`.
 
 Blocking conditions: no hits → fall back to `tsp.nodes.search`; only
@@ -147,6 +152,31 @@ Status-setting policy:
 | Work started but AC incomplete, no external blocker     | `in_progress`     |
 | Work cannot continue due to missing dependency/decision | `blocked`         |
 | No reliable node mapping                                | session note only |
+
+Tool sequence (detailed). This is moved out of
+`../skills/handoff/SKILL.md` to keep that skill under the Codex 8 KB
+per-skill cap; the skill carries the summary and points here:
+
+1. `tsp.context.get` — resolve plan/branch; ask the user once if unset.
+2. Compose the local-state summary (harness-side): touched files,
+   tests run + results, current diff, active node ids (`record_start`
+   this session with no terminal result yet), unresolved blockers and
+   next steps.
+3. For each active node:
+    1. If snippets exist: `tsp.alignment.assess(selector, snippets, diff?, strictness="normal")`. The alignment output's `acceptance_criteria` entries (`AlignmentCriterionResult`: `criterion`, `status`, `evidence`) are NOT wire-compatible with `record_result.acceptance_results` (`AcceptanceCriterionCheck`: `criterion`, `status`, `note`, `extra="forbid"`). Transform each entry: keep `criterion` and `status`; collapse `evidence` into a short `note` (e.g. `"; ".join(e.excerpt or e.path for e in evidence[:3])`); drop the raw `evidence` list before passing to `record_result` (extra fields are rejected by the model).
+    2. `tsp.workflow.record_result(selector, session_id, result_status, summary, touched_files, acceptance_results, tests_run, blockers, next_steps)`.
+4. `tsp.session_note.create(selector, session_id, node_ids, summary, next_steps, blockers, local_context)` — one note covering the whole session and every active node id.
+5. Show the final handoff summary plus the recommended next command.
+
+Extended blocking conditions:
+
+| Condition                                                                                                                     | Behavior                                                                                                                             |
+| ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Multiple active nodes                                                                                                         | Loop `record_result` per node; one `session_note.create` covers all of them.                                                         |
+| Active node's `NodeWorkflowState.active_session_id` (read via `tsp.workflow.get_state`) differs from the current `session_id` | A prior session crashed without `record_result`. Surface the conflict; default to overwrite (soft-warn), ask first when interactive. |
+| `record_result` fails for one node                                                                                            | Continue with the others; surface the failed node id in the summary so the user can retry manually.                                  |
+| Alignment unavailable (`ASSESSMENT_MODEL_UNAVAILABLE`)                                                                        | Skip alignment; record from harness checks alone; note the limitation in the session note's `local_context`.                         |
+| No active nodes touched this session                                                                                          | Skip per-node `record_result`; still create a session note so the canvas captures the session intent.                                |
 
 State writes: `Node.status` through `record_result`; supplementary
 fields and session note in the workflow store.

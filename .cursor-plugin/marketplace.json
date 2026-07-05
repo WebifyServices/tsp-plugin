@@ -1,0 +1,16 @@
+{
+	"name": "tsp-plugins",
+	"owner": {
+		"name": "WebifyServices"
+	},
+	"metadata": {
+		"description": "Tree-Structured Planning plugins for Claude Code and other MCP-aware coding harnesses: read TSP plans, route implementation work, record progress back to the canvas, and reverse-map code to governing nodes."
+	},
+	"plugins": [
+		{
+			"name": "tsp",
+			"source": "./tsp",
+			"description": "Tree-Structured Planning integration for coding agents. Read TSP plans, route implementation work, record progress back to the canvas, and reverse-map code to governing nodes."
+		}
+	]
+}

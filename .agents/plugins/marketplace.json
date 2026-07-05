@@ -1,0 +1,20 @@
+{
+	"name": "tsp-plugins",
+	"interface": {
+		"displayName": "Tree-Structured Planning"
+	},
+	"plugins": [
+		{
+			"name": "tsp",
+			"source": {
+				"source": "local",
+				"path": "./tsp"
+			},
+			"policy": {
+				"installation": "AVAILABLE",
+				"authentication": "ON_INSTALL"
+			},
+			"category": "Coding"
+		}
+	]
+}
