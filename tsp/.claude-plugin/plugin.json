@@ -1,7 +1,7 @@
 {
 	"name": "tsp",
 	"description": "Tree-Structured Planning integration for coding agents. Read TSP plans, route implementation work, record progress back to the canvas, and reverse-map code to governing nodes.",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"homepage": "https://treestructuredplanning.com",
 	"repository": "https://github.com/WebifyServices/tsp-plugin",
 	"author": {

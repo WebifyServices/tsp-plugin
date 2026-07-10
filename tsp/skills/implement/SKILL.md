@@ -74,11 +74,12 @@ The MCP server has no filesystem access. The harness:
 ### Atomic flow
 
 ```text
-1. Persist the brief locally (e.g., docs/plans/issue-<id>-brief.md).
-2. tsp.workflow.record_start(node, session_id, harness, summary).
-3. Read referenced files; make edits using harness tools.
-4. Run tests covering the change.
-5. tsp.workflow.record_result(
+1. tsp.workflow.record_start(node, session_id, harness, summary).
+   Keep the prepare brief in session context; the TSP node is the
+   plan artifact, so never persist the brief as a repo file.
+2. Read referenced files; make edits using harness tools.
+3. Run tests covering the change.
+4. tsp.workflow.record_result(
      node, session_id,
      result_status="complete" if AC satisfied and tests pass else
                    "in_progress" or "blocked",
