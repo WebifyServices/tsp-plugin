@@ -55,13 +55,13 @@ The harness:
 1. tsp.context.get
 2. (Optional) Local: read related files and capture excerpts.
 3. tsp.debug.map(
-     selector=<plan>,
+     plan_id=<plan>,  # optional once tsp.context.set has run
      error_text=<error>,
      stack_frames=<list of frame strings>,
      related_artifacts=<bounded list>,
      max_candidates=10,
    )
-4. (Optional, top candidate): tsp.node.execution_context(selector=<top_node>)
+4. (Optional, top candidate): tsp.node.execution_context(node_id=<top_node_id>)
 5. Render the candidate list with rationale, likely failure mode, and
    suggested debug steps.
 ```

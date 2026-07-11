@@ -43,19 +43,18 @@ None. Recommendations are computed entirely from plan state.
 ```text
 1. tsp.context.get
 2. tsp.plan.next_actionable(
-     selector=<plan>, workstream=<filter or null>,
+     plan_id=<plan>, workstream=<filter or null>,
      include_in_progress=false, include_non_atomic=false,
      max_results=<N>,
    )
+   # plan_id may be omitted once tsp.context.set has run — the session
+   # default fills it in; an explicit plan_id wins.
 3. For the primary recommendation:
-   # `primary.node` is a NodeRef. `tsp.node.execution_context` needs
-   # a NodeSelector (plan_id + node_id + optional branch_name); build
-   # one before calling — passing the raw NodeRef fails validation.
+   # `primary.node` is a NodeRef; pass its node_id as the flat
+   # `node_id` field.
    tsp.node.execution_context(
-       selector=NodeSelector(
-           plan_id=<plan>, branch_name=<branch>,
-           node_id=primary.node.node_id,
-       ),
+       plan_id=<plan>,
+       node_id=primary.node.node_id,
        include_dependencies=true,
        include_code_refs=true,
    )

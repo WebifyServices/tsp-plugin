@@ -41,24 +41,22 @@ None. Explain is purely plan-side; the harness reads no local files.
 ```text
 1. tsp.context.get
 2. tsp.plan.semantic_search(
-     selector=<plan>, query=<topic>, purpose="explain",
+     plan_id=<plan>, query=<topic>, purpose="explain",
      max_results=<5..10>,
    )
+   # plan_id may be omitted on every call below once tsp.context.set has
+   # run — the session default fills it in; an explicit plan_id wins.
 3. For top 3-5 hits:
-   # Semantic search returns hits whose `node` is a NodeRef (id/title).
-   # `tsp.node.execution_context` requires a NodeSelector (plan_id +
-   # node_id + optional branch_name). Build one per hit before
-   # calling — passing the raw NodeRef fails Pydantic validation.
+   # Semantic search returns hits whose `node` is a NodeRef (id/title);
+   # pass its node_id as the flat `node_id` field.
    tsp.node.execution_context(
-       selector=NodeSelector(
-           plan_id=<plan>, branch_name=<branch>,
-           node_id=hit.node.node_id,
-       ),
+       plan_id=<plan>,
+       node_id=hit.node.node_id,
        include_ancestors=true,
        include_dependencies=true,
        include_dependents=true,
    )
-4. (Optional) tsp.edges.list(selector=<plan>) for cross-cutting edges.
+4. (Optional) tsp.edges.list(plan_id=<plan>) for cross-cutting edges.
 5. Render the explanation.
 ```
 

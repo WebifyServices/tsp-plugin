@@ -62,8 +62,9 @@ The MCP server has no filesystem access. The harness:
 1. tsp.context.get
    - If no plan_id passed and no context set, ask the user once and
      call tsp.context.set so subsequent reads use it.
-2. tsp.implement.prepare(selector=<node>, include_subtree=true,
+2. tsp.implement.prepare(node_id=<node>, include_subtree=true,
                          require_acceptance_criteria=true)
+   # plan_id is optional everywhere once tsp.context.set has run.
 3. Branch on routing:
    - blocked            -> show blockers and stop.
    - needs_refinement   -> show missing prerequisites and stop.
@@ -74,42 +75,51 @@ The MCP server has no filesystem access. The harness:
 ### Atomic flow
 
 ```text
-1. tsp.workflow.record_start(node, session_id, harness, summary).
+1. tsp.workflow.record_start(node_id=<node>, session_id=<session>,
+                             harness=<harness>, summary=<summary>).
+   # A node with incomplete depends_on targets commits "blocked"
+   # (blockers named in incomplete_dependencies) — investigate
+   # before proceeding.
    Keep the prepare brief in session context; the TSP node is the
    plan artifact, so never persist the brief as a repo file.
 2. Read referenced files; make edits using harness tools.
 3. Run tests covering the change.
 4. tsp.workflow.record_result(
-     node, session_id,
+     node_id=<node>, session_id=<session>,
      result_status="complete" if AC satisfied and tests pass else
                    "in_progress" or "blocked",
      summary=<one-paragraph summary>,
      touched_files=<edited paths>,
-     acceptance_results=[{criterion: ..., status: ...}],
+     acceptance_results=[{criterion_id: "ac-1", status: ...}, ...],
      tests_run=<test ids or commands>,
      blockers=<external blockers>,
      next_steps=<follow-ups for the next session>,
    )
+   # acceptance_results link by the positional criterion_id (ac-1,
+   # ac-2, …) shown alongside acceptance_criteria on reads — never
+   # re-type criterion text. new_status is the committed status;
+   # transition_note explains implicit transitions. Retroactive
+   # recording needs only this one call (no record_start).
 ```
 
 ### Non-atomic flow
 
 ```text
 For each leaf in routing.leaf_queue (in order):
-  1. tsp.implement.prepare(selector=<leaf>, include_subtree=false,
+  1. tsp.implement.prepare(node_id=<leaf>, include_subtree=false,
                            require_acceptance_criteria=true).
   2. If leaf routes to blocked / needs_refinement, stop and surface
      why; do NOT skip ahead.
-  3. tsp.workflow.record_start(leaf, session_id, harness, summary).
+  3. tsp.workflow.record_start(node_id=<leaf>, session_id=<session>, ...).
   4. Implement the leaf locally; run leaf-relevant tests.
-  5. tsp.workflow.record_result(leaf, session_id, ...).
+  5. tsp.workflow.record_result(node_id=<leaf>, session_id=<session>, ...).
 
 After every leaf completes, re-run tsp.implement.prepare on the
 parent node and decide:
   - If parent acceptance criteria are now satisfied:
-      tsp.workflow.record_result(parent, session_id, "complete", ...).
+      tsp.workflow.record_result(node_id=<parent>, result_status="complete", ...).
   - Otherwise:
-      tsp.workflow.record_result(parent, session_id, "in_progress", ...)
+      tsp.workflow.record_result(node_id=<parent>, result_status="in_progress", ...)
       and call out unfinished AC.
 ```
 

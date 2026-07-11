@@ -60,13 +60,13 @@ The harness:
 1. tsp.context.get
 2. (Optional) Local: read the file or capture the diff; extract symbols.
 3. tsp.impact.map(
-     selector=<plan>,
+     plan_id=<plan>,  # optional once tsp.context.set has run
      artifacts=[CodeArtifactInput(path=..., content_excerpt=..., symbols=...)],
      mode=<pre_refactor|pre_review|general>,
      max_candidates=10,
      include_dependency_neighbors=true,
    )
-4. (Optional, top candidate): tsp.node.execution_context(selector=<top_node>)
+4. (Optional, top candidate): tsp.node.execution_context(node_id=<top_node_id>)
 5. Render the candidate list with rationale, governing scope, and risks.
 ```
 

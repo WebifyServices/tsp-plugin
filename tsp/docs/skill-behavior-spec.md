@@ -88,21 +88,27 @@ State writes: none.
 
 ### `align`
 
-Capability: detect drift between code and plan. Harness reads files
-locally and ships focused snippets; server returns a structured
-drift report (verdict + findings + per-criterion checks).
+Capability: detect drift between code and plan. The harness fetches
+the node's intent, scope, and acceptance criteria through free reads,
+reads the code locally, and judges each criterion itself (`satisfied`
+/ `missing` / `unclear` / `contradicted`, bound by meaning; removed
+diff lines never count as `satisfied` evidence). It renders a
+structured drift report (verdict + findings + per-criterion checks).
+No metered operation is ever invoked: `tsp.alignment.assess` remains
+a free deterministic keyword check, and the server-side LLM judge is
+a post-MVP explicit opt-in (#2037).
 
-Required MCP tools: `tsp.context.get`, `tsp.node.execution_context`,
-`tsp.alignment.assess`. Optionally `tsp.workflow.record_result` to
-record acceptance evidence on aligned verdicts.
+Required MCP tools: `tsp.context.get`, `tsp.node.execution_context`.
+Optionally `tsp.workflow.record_result` to record acceptance evidence
+on aligned verdicts.
 
-Blocking conditions: missing AC → `MISSING_ACCEPTANCE_CRITERIA`
-(skill recommends plan refinement); snippets exceed caps → summarize
-locally; in V1 the LLM judge is disabled and the warning surfaces
-that the verdict is from deterministic preflight only.
+Blocking conditions: missing AC → alignment can only compare
+intent/scope, confidence is low, recommend plan refinement; no likely
+files found → ask the user or keyword-search the repo from node
+title/scope terms.
 
 State writes: only when explicitly asked (`record_result` with the
-alignment-derived `acceptance_results`).
+harness-judged `acceptance_results`).
 
 ### `impact`
 
@@ -133,13 +139,14 @@ State writes: none.
 
 ### `handoff`
 
-Capability: end-of-session loop closure. Per active node, optionally
-align then `record_result`; finally `session_note.create` covering
-the whole session.
+Capability: end-of-session loop closure. Per active node, judge the
+acceptance criteria locally against the session's artifacts, then
+`record_result`; finally `session_note.create` covering the whole
+session. No metered operation is ever invoked (#2037 tracks the
+opt-in server judge).
 
-Required MCP tools: `tsp.context.get`, optionally
-`tsp.alignment.assess`, then `tsp.workflow.record_result` and
-`tsp.session_note.create`.
+Required MCP tools: `tsp.context.get`, then
+`tsp.workflow.record_result` and `tsp.session_note.create`.
 
 Blocking conditions: no reliable mapping between local state and a
 TSP node → skip per-node `record_result`, create session note only.
@@ -163,9 +170,9 @@ per-skill cap; the skill carries the summary and points here:
    this session with no terminal result yet), unresolved blockers and
    next steps.
 3. For each active node:
-    1. If snippets exist: `tsp.alignment.assess(selector, snippets, diff?, strictness="normal")`. The alignment output's `acceptance_criteria` entries (`AlignmentCriterionResult`: `criterion`, `status`, `evidence`) are NOT wire-compatible with `record_result.acceptance_results` (`AcceptanceCriterionCheck`: `criterion`, `status`, `note`, `extra="forbid"`). Transform each entry: keep `criterion` and `status`; collapse `evidence` into a short `note` (e.g. `"; ".join(e.excerpt or e.path for e in evidence[:3])`); drop the raw `evidence` list before passing to `record_result` (extra fields are rejected by the model).
-    2. `tsp.workflow.record_result(selector, session_id, result_status, summary, touched_files, acceptance_results, tests_run, blockers, next_steps)`.
-4. `tsp.session_note.create(selector, session_id, node_ids, summary, next_steps, blockers, local_context)` — one note covering the whole session and every active node id.
+    1. Judge each acceptance criterion locally against the session's artifacts (diff, tests run, files read): `satisfied` / `missing` / `unclear` / `contradicted`, bound by meaning rather than vocabulary; removed diff lines never count as `satisfied` evidence. Compose `acceptance_results` entries directly as `{criterion_id, status, note}` — positional `criterion_id` (`ac-1`, `ac-2`, …), a short evidence string in `note`, never re-typed criterion text (the server resolves the id to the canonical wording).
+    2. `tsp.workflow.record_result(node_id, session_id, result_status, summary, touched_files, acceptance_results, tests_run, blockers, next_steps)` — the response's `new_status` is what the status rules actually committed; `transition_note` states any implicit transition and `incomplete_dependencies` names blocking node ids. Valid standalone (no prior `record_start`) for recording already-finished work retroactively in one call.
+4. `tsp.session_note.create(plan_id?, session_id, node_ids, summary, next_steps, blockers, local_context)` — one note covering the whole session and every active node id.
 5. Show the final handoff summary plus the recommended next command.
 
 Extended blocking conditions:
@@ -175,7 +182,7 @@ Extended blocking conditions:
 | Multiple active nodes                                                                                                         | Loop `record_result` per node; one `session_note.create` covers all of them.                                                         |
 | Active node's `NodeWorkflowState.active_session_id` (read via `tsp.workflow.get_state`) differs from the current `session_id` | A prior session crashed without `record_result`. Surface the conflict; default to overwrite (soft-warn), ask first when interactive. |
 | `record_result` fails for one node                                                                                            | Continue with the others; surface the failed node id in the summary so the user can retry manually.                                  |
-| Alignment unavailable (`ASSESSMENT_MODEL_UNAVAILABLE`)                                                                        | Skip alignment; record from harness checks alone; note the limitation in the session note's `local_context`.                         |
+| Acceptance criteria not judgeable (no diff/tests to weigh)                                                                    | Record from harness checks alone; note the limitation in the session note's `local_context`.                                         |
 | No active nodes touched this session                                                                                          | Skip per-node `record_result`; still create a session note so the canvas captures the session intent.                                |
 
 State writes: `Node.status` through `record_result`; supplementary

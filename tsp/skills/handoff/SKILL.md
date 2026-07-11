@@ -27,11 +27,15 @@ Y.js room.
 
 ## Capability
 
-`handoff` — at end of session: per active node, optionally check
-alignment, write a result status with the supplementary fields the
-agent collected, then create one session note covering the whole
-session for free-text handoff context. Output is a one-screen
-summary the user can confirm before exit.
+`handoff` — at end of session: per active node, judge the node's
+acceptance criteria against what the session actually did (diff,
+tests run, files touched), write a result status with the
+supplementary fields the agent collected, then create one session
+note covering the whole session for free-text handoff context.
+Output is a one-screen summary the user can confirm before exit.
+The judging is yours, done locally — never invoke a metered
+operation from this skill (the server-side LLM judge is a post-MVP
+explicit opt-in, #2037).
 
 ## Inputs
 
@@ -56,9 +60,8 @@ Collected from session state (the skill asks once when ambiguous):
 - `tsp.context.get` — resolve session-scoped plan and branch.
 - `tsp.workflow.get_state` — read each active node's
   `NodeWorkflowState` for the stale-session check.
-- `tsp.alignment.assess` (optional) — when the harness has snippets
-  for an active node, align before writing so the recorded
-  `acceptance_results` reflect what was checked.
+- `tsp.node.execution_context` (optional) — re-fetch a node's
+  acceptance criteria when they aren't already in session context.
 - `tsp.workflow.record_result` — terminal status per active node.
 - `tsp.session_note.create` — one free-text record covering the
   whole session and the affected node ids.
@@ -69,28 +72,28 @@ The MCP server has no filesystem access. The harness:
 
 1. Reads its own session log / commit history / git diff to compose
    the summary, files-changed list, and tests-run list.
-2. Optionally reads recorded `code_refs` from earlier
-   `tsp.node.execution_context` calls to pick alignment snippets.
-3. Sends only bounded, focused content to MCP (alignment snippets
-   cap at 20 entries totaling 20k content chars + 40k diff chars).
+2. Judges each active node's acceptance criteria against those
+   artifacts locally: `satisfied` / `missing` / `unclear` /
+   `contradicted` per criterion, bound by meaning rather than
+   vocabulary, with removed diff lines never counting as evidence
+   of `satisfied`.
 
 ## Tool sequence
 
 1. `tsp.context.get` (ask once if plan/branch unset).
 2. Compose the local-state summary: touched files, tests run, diff
    state, active node ids, unresolved blockers and next steps.
-3. For each active node: optionally `tsp.alignment.assess`, then
-   `tsp.workflow.record_result` with the status from the policy below
-   and the supplementary fields collected.
+3. For each active node: judge its acceptance criteria locally, then
+   `tsp.workflow.record_result` with the status from the policy below,
+   `acceptance_results` composed directly as
+   `{criterion_id, status, note}` entries (positional ids `ac-1`,
+   `ac-2`, …; never re-type criterion text; a short evidence string
+   goes in `note`), and the supplementary fields collected.
 4. `tsp.session_note.create` once, covering all active node ids.
 5. Show the final summary plus the recommended next command.
 
-The alignment output is not wire-compatible with `record_result`
-(`AlignmentCriterionResult` vs `AcceptanceCriterionCheck`, which
-forbids extra fields), so the harness transforms each entry before
-recording. The full step-by-step, the exact transform recipe, and the
-extended blocking-condition table live in
-`../docs/skill-behavior-spec.md` under `handoff`.
+The full step-by-step and the extended blocking-condition table live
+in `../docs/skill-behavior-spec.md` under `handoff`.
 
 ## Status-setting policy
 
