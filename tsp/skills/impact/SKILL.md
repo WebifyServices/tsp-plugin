@@ -61,7 +61,7 @@ The harness:
 2. (Optional) Local: read the file or capture the diff; extract symbols.
 3. tsp.impact.map(
      plan_id=<plan>,  # optional once tsp.context.set has run
-     artifacts=[CodeArtifactInput(path=..., content_excerpt=..., symbols=...)],
+     artifacts=[CodeArtifactSpec(path=..., content_excerpt=..., symbols=...)],
      mode=<pre_refactor|pre_review|general>,
      max_candidates=10,
      include_dependency_neighbors=true,

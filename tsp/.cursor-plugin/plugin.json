@@ -1,7 +1,7 @@
 {
 	"name": "tsp",
 	"displayName": "Tree-Structured Planning",
-	"version": "0.2.2",
+	"version": "0.2.3",
 	"description": "Tree-Structured Planning integration for coding agents. Read TSP plans, route implementation work, record progress back to the canvas, and reverse-map code to governing nodes.",
 	"author": {
 		"name": "Tree-Structured Planning",
