@@ -9,17 +9,11 @@ Reverse-map code artifacts (files, diffs, symbols) to TSP nodes via
 `tsp.impact.map`. Useful before refactors, during review, and before
 merging work that might cross semantic boundaries.
 
-V1 ranking sources, descending by inherent confidence:
-
-- `recorded_code_ref` (~0.9): a node's `record_result` previously
-  reported the touched path.
-- `keyword_match` (~0.45-0.6): the artifact's path / symbols / excerpt
-  overlap with the node's title, intent, or scope.
-- `edge_neighbor` (~0.35): one hop along `depends_on` from a candidate.
-
-The mapping improves over time because `implement` and `handoff`
-record touched files; cold-start results are lower-confidence and
-lean on keyword + edge traversal.
+Ranking draws on three sources, strongest first: paths previously
+recorded by `record_result`, keyword overlap with node text, and
+one-hop `depends_on` neighbors. The mapping improves over time as
+`implement` and `handoff` record touched files; cold-start results
+are lower-confidence and lean on keyword + edge traversal.
 
 ## Capability
 
@@ -92,7 +86,8 @@ Suggested checks:
 ```
 
 For empty results, the skill surfaces the warning verbatim and
-recommends running `/tsp:nodes.search` with terms from the artifact.
+recommends a `tsp.nodes.search` query built from the artifact's path
+and symbol terms.
 
 ## Blocking conditions
 

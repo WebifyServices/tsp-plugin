@@ -45,7 +45,10 @@ path, with debug steps the user can take next.
 The harness:
 
 1. Captures the error text (verbatim, up to 40k chars).
-2. Extracts stack frames as raw strings; the server parses them.
+2. Extracts stack frames as raw strings; the server parses common
+   Python / Node / generic conventions, deduplicates the paths and
+   symbols, and when nothing parses it warns and falls back to
+   keyword search over `error_text` automatically.
 3. Optionally reads code at file paths the frames reference and
    includes excerpts as `related_artifacts` (cap: 20 entries).
 
@@ -65,19 +68,6 @@ The harness:
 5. Render the candidate list with rationale, likely failure mode, and
    suggested debug steps.
 ```
-
-## Stack-frame parsing
-
-The server's parser handles common conventions:
-
-- Python: `File "path/to/file.py", line N, in symbol`
-- Node/JS: `at symbol (path:line:col)`
-- Generic: any path containing a known file extension followed by
-  `:line` or `:line:col`.
-
-Symbols and paths are deduplicated and used to seed keyword search
-against node text. When no frames parse, the server emits a warning
-and falls back to keyword search over `error_text`.
 
 ## Output format
 
@@ -104,7 +94,7 @@ Suggested commands:
 
 ## Blocking conditions
 
-| Sparse data                    | Fallback                                                              |
+| Condition                      | Skill behavior                                                        |
 | ------------------------------ | --------------------------------------------------------------------- |
 | No stack frames                | Search over the error text via keyword matching against node text.    |
 | No code refs                   | Use path terms and node titles via keyword.                           |

@@ -96,7 +96,7 @@ diff lines never count as `satisfied` evidence). It renders a
 structured drift report (verdict + findings + per-criterion checks).
 No metered operation is ever invoked: `tsp.alignment.assess` remains
 a free deterministic keyword check, and the server-side LLM judge is
-a post-MVP explicit opt-in (#2037).
+a roadmap feature, opt-in when it ships.
 
 Required MCP tools: `tsp.context.get`, `tsp.node.execution_context`.
 Optionally `tsp.workflow.record_result` to record acceptance evidence
@@ -142,8 +142,8 @@ State writes: none.
 Capability: end-of-session loop closure. Per active node, judge the
 acceptance criteria locally against the session's artifacts, then
 `record_result`; finally `session_note.create` covering the whole
-session. No metered operation is ever invoked (#2037 tracks the
-opt-in server judge).
+session. No metered operation is ever invoked (the opt-in server
+judge is on the roadmap).
 
 Required MCP tools: `tsp.context.get`, then
 `tsp.workflow.record_result` and `tsp.session_note.create`.
@@ -188,6 +188,43 @@ Extended blocking conditions:
 State writes: `Node.status` through `record_result`; supplementary
 fields and session note in the workflow store.
 
+### `plan-author`
+
+Capability: author or repair plan structure over the write tools at
+the generative system's quality bar, exactly as lean as the
+requirements permit (coverage floor: every stated surface gets an
+owning node; leanness ceiling: nothing the source does not state).
+Tree-first decomposition (one honest specificity step per level,
+child count an output of the semantics — never a target, one
+partition axis per level, siblings comparable in kind not size,
+semantic atomicity); a complete contract on every node (intent
+strictly narrower than the parent's, concrete in_scope noun phrases,
+out_of_scope never empty — each entry the owning node's exact title,
+root non-goals on the root only, observable acceptance criteria);
+and a minimal edge set — zero edges is acceptable, far fewer edges
+than nodes, one edge per node pair, no parent/ancestor edges, no
+transitive depends_on echoes, no sequencing-as-dependency, every
+kept edge noted with what flows. Authors the tree first
+(`tsp.nodes.create` batches without edges), then one deliberate edge
+pass over the finished tree, then a boundary pass over every node's
+out_of_scope, a coverage pass back over the source, and self-review
+with `tsp.tree.summary` + `tsp.edges.list`.
+
+Required MCP tools: `tsp.context.get/set`, `tsp.plan.create`,
+`tsp.nodes.create`, `tsp.node.update`, `tsp.edge.create`,
+`tsp.edge.delete`, `tsp.edges.list`, `tsp.tree.summary`. Optionally
+`tsp.node.generate` (metered) to delegate a decomposition or
+refinement, reviewed by the same rules.
+
+Blocking conditions: source material too thin → ask, never invent
+children; plan/node caps or tier errors → surface and narrow scope
+explicitly; existing plan violates the standard → offer a repair pass
+(edge deletions first) instead of mirroring the pattern.
+
+State writes: plan, node, and edge structure only; no workflow
+writes — delivery status stays `draft` until implementation sessions
+claim nodes.
+
 ## Tool / scope / tier matrix
 
 | Tool                                    | Tier | Scopes                             |
@@ -211,6 +248,11 @@ fields and session note in the workflow store.
 | `tsp.alignment.assess`                  | Pro  | `plans:read` + `alignment:run`     |
 | `tsp.impact.map`                        | Pro  | `plans:read` + `impact:read`       |
 | `tsp.debug.map`                         | Pro  | `plans:read` + `impact:read`       |
+| `tsp.plan.create` / `tsp.plan.update`   | Pro  | `plans:read` + `plans:write`       |
+| `tsp.node.create/update/delete/move`    | Pro  | `plans:read` + `structure:write`   |
+| `tsp.nodes.create`                      | Pro  | `plans:read` + `structure:write`   |
+| `tsp.edge.create` / `tsp.edge.delete`   | Pro  | `plans:read` + `structure:write`   |
+| `tsp.node.generate` (metered)           | Pro  | `plans:read` + `generation:run`    |
 
 ## Porting checklist
 

@@ -34,8 +34,8 @@ supplementary fields the agent collected, then create one session
 note covering the whole session for free-text handoff context.
 Output is a one-screen summary the user can confirm before exit.
 The judging is yours, done locally — never invoke a metered
-operation from this skill (the server-side LLM judge is a post-MVP
-explicit opt-in, #2037).
+operation from this skill (the server-side LLM judge is a roadmap
+feature, an explicit opt-in when it ships).
 
 ## Inputs
 
