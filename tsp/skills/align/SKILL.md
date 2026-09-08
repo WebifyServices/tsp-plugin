@@ -5,6 +5,8 @@ description: Detect drift between code and a TSP node's intent, scope, and accep
 
 # tsp:align
 
+First follow [Worker lifecycle](../../docs/application-sessions.md).
+
 Detect drift between implementation and plan. The MCP server has no
 filesystem access and runs no LLM for alignment: **you are the
 judge**. This skill fetches the node's intent, scope, and acceptance

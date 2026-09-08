@@ -5,6 +5,8 @@ description: Return a coherent answer about a TSP plan topic — which nodes gov
 
 # tsp:explain
 
+First follow [Worker lifecycle](../../docs/application-sessions.md).
+
 Return a coherent answer about a TSP plan topic: which nodes govern
 the topic, how they relate, and where the gaps are.
 `tsp.plan.semantic_search` surfaces the most relevant nodes for the

@@ -5,6 +5,8 @@ description: Reverse-map a file or diff to the TSP nodes that govern it. Trigger
 
 # tsp:impact
 
+First follow [Worker lifecycle](../../docs/application-sessions.md).
+
 Reverse-map code artifacts (files, diffs, symbols) to TSP nodes via
 `tsp.impact.map`. Useful before refactors, during review, and before
 merging work that might cross semantic boundaries.

@@ -5,6 +5,8 @@ description: Recommend the next TSP node to work on, ranked by downstream critic
 
 # tsp:next-actionable
 
+First follow [Worker lifecycle](../../docs/application-sessions.md).
+
 The queue / todo capability for a TSP plan. Looks at the dependency
 DAG, status of each node, and downstream critical-path length, then
 recommends what a coding agent should pick up next. Bounded results,
@@ -90,10 +92,10 @@ Excluded counts:
 
 ## Blocking conditions
 
-| Condition                | Skill behavior                                                                                       |
-| ------------------------ | ---------------------------------------------------------------------------------------------------- |
-| No candidates            | Show excluded_counts so the user can see why; recommend relaxing filters or refining the plan.       |
-| Dependency cycle warning | Server raises `DEPENDENCY_CYCLE_DETECTED`; render involved node ids and recommend repairing the DAG. |
+| Condition                | Skill behavior                                                                                                                                                                                                                                                                                    |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No candidates            | Show excluded_counts so the user can see why; recommend relaxing filters or refining the plan.                                                                                                                                                                                                    |
+| Dependency cycle warning | Server raises `DEPENDENCY_CYCLE_DETECTED`; render involved node ids and recommend repairing the DAG.                                                                                                                                                                                              |
 | Sparse statuses          | `tsp.plan.next_actionable` ranks `ready` candidates ahead of `draft` and may return `draft` entries in the tail when `max_results` exceeds the number of `ready` leaves. Surface the lower-confidence `draft` rows as alternates (not the primary) when the top of the list is a draft candidate. |
 
 ## State writes

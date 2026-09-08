@@ -5,6 +5,8 @@ description: Identify which TSP nodes likely govern a failing path from a stack 
 
 # tsp:debug
 
+First follow [Worker lifecycle](../../docs/application-sessions.md).
+
 Identify which TSP nodes likely govern a failing path. `debug` is an
 impact variant optimized for errors, stack traces, test failures, and
 runtime symptoms. The MCP server has no filesystem access; the

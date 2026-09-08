@@ -5,8 +5,10 @@ description: Author high-quality TSP plans over MCP (tsp.plan.create, tsp.nodes.
 
 # tsp:plan-author
 
-Turn source material (request, PRD, spec) into a
-plan or subtree that reads like the generative system's — a
+First follow [Worker lifecycle](../../docs/application-sessions.md).
+
+Turn requirements into a
+plan or subtree with a
 decomposition tree that carries the structure, a minimal set of edges
 that each earn their place, a complete contract on every node — or
 repair an existing plan to that standard. Hand-authored plans fail two

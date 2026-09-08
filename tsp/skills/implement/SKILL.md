@@ -5,6 +5,8 @@ description: Turn a TSP node into shipped code using tsp.implement.prepare for r
 
 # tsp:implement
 
+First follow [Worker lifecycle](../../docs/application-sessions.md).
+
 Turn a TSP node or subtree into actionable code work. TSP is the
 source of truth: this skill creates an implementation brief, routes
 atomic vs. non-atomic work, records progress back to TSP, and stops

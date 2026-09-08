@@ -5,6 +5,8 @@ description: Close the loop on a coding session by writing status, touched files
 
 # tsp:handoff
 
+First follow [Worker lifecycle](../../docs/application-sessions.md).
+
 Loop closure between a coding agent and the canvas. When a session
 finishes (work shipped, blocked, or paused), `handoff` summarizes
 local state and writes it back to TSP so the next session — human or

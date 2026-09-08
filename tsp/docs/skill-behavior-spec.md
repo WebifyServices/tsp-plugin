@@ -23,9 +23,10 @@ For the canonical living source for each skill, see
   bounded payloads to MCP.
 - Selectors default to `branch_name="main"` everywhere. V1 is
   branch-naive; `tsp.branches.list` is deferred Future work.
-- Session keying is via the `MCP-Session-Id` header, falling back to
-  the bearer token id. Two concurrent sessions on one token get
-  distinct context windows.
+- Every worker follows [Worker session lifecycle](./application-sessions.md):
+  register independently, pass the active handle in ordinary tool payloads,
+  renew or resume its lease, and close at worker shutdown. Workers sharing
+  OAuth credentials retain independent defaults across transport reconnections.
 - Strict scope additivity: every tool's gate declares every scope
   its handler transitively touches. There is no implicit inheritance
   between scopes.
