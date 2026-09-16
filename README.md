@@ -1,21 +1,21 @@
 # TSP plugin
 
-Tree-Structured Planning (TSP) is a canvas for planning software systems that coding agents can read from and write back to. This is the installable TSP plugin: one multi-harness package that installs in **Claude Code**, **Cursor**, and **Codex**, bundling eight skills with a connection to the hosted TSP MCP server. A single install gives your agent a working loop against your plans — author well-structured plans, route implementation work off a node, record progress back to the canvas, reverse-map a diff to the nodes that govern it, and hand a session off cleanly when you stop.
+Tree-Structured Planning (TSP) is a canvas for planning software systems that coding agents can read from and write back to. This plugin installs in **Claude Code**, **Cursor**, and **Codex**. One package gives you eight skills plus a connection to the hosted TSP MCP server.
 
-All three harnesses get the identical skills talking to the same hosted MCP server; only the install step and how you invoke a skill differ. The skill contracts are written to port to any MCP-aware harness (Cline and others re-implement against the same spec), so the three supported here are peers, not a primary plus ports.
+Install once, then your agent can author plans, implement off a node, record progress, reverse-map a diff to the nodes that govern it, and hand a session off when you stop. All three harnesses get the same skills against the same MCP server. Only the install step and how you invoke a skill change. The skill contracts are written to port to any MCP-aware harness (Cline and others re-implement against the same spec), so the three supported here are peers, not a primary plus ports.
 
 > This repository is a published mirror. The canonical source lives in the private TSP monorepo and this artifact is synced out on each release, so the skills and manifests here are generated, not hand-edited. See [CONTRIBUTING](./CONTRIBUTING.md) before opening a PR.
 
 ## What you need first
 
-- One of [Claude Code](https://code.claude.com), [Cursor](https://cursor.com) (2.5 or later), or [Codex](https://developers.openai.com/codex) — whichever you already use.
-- A TSP account at [treestructuredplanning.com](https://treestructuredplanning.com). The plugin connects to the hosted MCP server and authenticates you through your browser: there are no API keys or tokens to paste anywhere. Cursor and Codex still need the `tsp` server pointed at, as their install sections below cover; only the credential handoff is automatic.
+- One of [Claude Code](https://code.claude.com), [Cursor](https://cursor.com) (2.5 and later), or [Codex](https://developers.openai.com/codex), whichever you already use.
+- A TSP account at [treestructuredplanning.com](https://treestructuredplanning.com). Sign in through your browser. No API keys or tokens to paste. Cursor and Codex still need the `tsp` server pointed at (see the install sections below). Only the credential handoff is automatic.
 
-The MCP server URL is production (`https://treestructuredplanning.com/mcp/`) everywhere. If you run TSP somewhere else, Cursor and Codex just need the `url` in the config below changed to your endpoint. Claude Code's marketplace install is pinned to this repo's shipped `tsp/.mcp.json`, so pointing it elsewhere means installing from a fork or clone with that file edited, not the marketplace command.
+The MCP server URL is production (`https://treestructuredplanning.com/mcp/`) everywhere. If you run TSP somewhere else, change the `url` in the Cursor or Codex config below. Claude Code's marketplace install is pinned to this repo's shipped `tsp/.mcp.json`, so pointing it elsewhere means installing from a fork or clone with that file edited, not the marketplace command.
 
 ## Install
 
-Pick your harness — each is a quick, one-time setup. The install steps here match the in-app [Connect your agent](https://treestructuredplanning.com/docs/drive-with-your-agent/connect-your-agent) guide.
+Pick your harness. Each is a quick, one-time setup. These steps match the in-app [Connect your agent](https://treestructuredplanning.com/docs/drive-with-your-agent/connect-your-agent) guide.
 
 ### Claude Code
 
@@ -26,17 +26,17 @@ Add the marketplace and install the plugin:
 /plugin install tsp@tsp-plugins
 ```
 
-The first command registers this repo as a Claude Code plugin marketplace; the second installs the `tsp` plugin from it. Claude Code may ask you to reload the session so the new skills and the MCP server register. On first use it discovers the authorization server from the MCP server's response and drives the OAuth 2.1 + PKCE browser sign-in for you; the result is stored and refreshed automatically. If the `tsp` server later shows as needing authentication, run `/mcp`, select `tsp`, and choose **Reauthenticate**.
+The first command registers this repo as a Claude Code plugin marketplace. The second installs the `tsp` plugin from it. These `/plugin` commands are Claude Code's (terminal or IDE). In Claude Desktop or claude.ai, add `https://treestructuredplanning.com/mcp/` as a custom connector instead. Claude Code may ask you to reload the session so the new skills and the MCP server register. On first use it discovers the authorization server from the MCP server's response and drives the OAuth 2.1 + PKCE browser sign-in for you. The result is stored and refreshed automatically. If the `tsp` server later shows as needing authentication, run `/mcp`, select `tsp`, and choose **Reauthenticate**.
 
-Skills surface as `/tsp:<skill>` slash commands — type `/tsp:` to autocomplete the eight.
+Skills surface as `/tsp:<skill>` slash commands. Type `/tsp:` to autocomplete the eight. A finished sign-in is not the whole check: ask Claude to list your TSP plans. A plan list, even an empty one, means the read path is live.
 
 ### Cursor
 
-Cursor's plugin system (2.5 and later) packages the skills and the MCP connection together, so setup is two steps.
+Cursor 2.5 and later. Two steps: install the plugin, then connect.
 
-**Install the plugin.** Run `/add-plugin` in Cursor and point it at the `WebifyServices/tsp-plugin` repo, or install **TSP** from the [Cursor Marketplace](https://cursor.com/marketplace). This brings in the eight skills.
+**Install the plugin.** Run `/add-plugin` and point it at `WebifyServices/tsp-plugin`, or install **TSP** from the [Cursor Marketplace](https://cursor.com/marketplace). This brings in the eight skills.
 
-**Connect the MCP server.** Add the `tsp` server to `.cursor/mcp.json` in your project (or `~/.cursor/mcp.json` to make it available everywhere):
+**Connect.** Add the `tsp` server to `.cursor/mcp.json` in your project, or `~/.cursor/mcp.json` for every project:
 
 ```json
 {
@@ -48,7 +48,7 @@ Cursor's plugin system (2.5 and later) packages the skills and the MCP connectio
 }
 ```
 
-A bare `url` is all you need: Cursor shows the server as needing sign-in, opens your browser to authorize it, and then stores and refreshes the token on its own. Don't add an `Authorization` header or a client id — a static auth block suppresses the automatic sign-in. If Cursor sits on "needs login" without opening the browser, use the bridge form, which runs the sign-in itself:
+A bare `url` is enough. Cursor shows the server as needing sign-in, opens your browser to authorize it, then stores and refreshes the token on its own. Don't add an `Authorization` header or a client id. A static auth block suppresses the automatic sign-in. If Cursor sits on "needs login" without opening the browser, use the bridge form, which runs the sign-in itself:
 
 ```json
 {
@@ -61,30 +61,30 @@ A bare `url` is all you need: Cursor shows the server as needing sign-in, opens 
 }
 ```
 
-Skills surface through Cursor's `/` skill menu, and Cursor applies them automatically when they're relevant.
+Skills surface through Cursor's `/` skill menu. Cursor applies them automatically when they're relevant. After sign-in, ask Cursor to list your TSP plans.
 
 ### Codex
 
-Codex installs the plugin from a marketplace, then connects to the same MCP endpoint — three steps.
+Three steps: install the plugin, add the server, sign in.
 
-**Install the plugin.** In Codex, open `/plugins`, add the `WebifyServices/tsp-plugin` marketplace, and install `tsp`. This brings in the eight skills.
+**Install.** Open `/plugins`, add the `WebifyServices/tsp-plugin` marketplace, and install `tsp`. This brings in the eight skills.
 
-**Add the MCP server.** Put the `tsp` server in `~/.codex/config.toml` (or `$CODEX_HOME/config.toml`):
+**Add the server** in `~/.codex/config.toml` (or `$CODEX_HOME/config.toml`):
 
 ```toml
 [mcp_servers.tsp]
 url = "https://treestructuredplanning.com/mcp/"
 ```
 
-Or add it from the terminal in one line: `codex mcp add tsp --url https://treestructuredplanning.com/mcp/`.
+Or: `codex mcp add tsp --url https://treestructuredplanning.com/mcp/`.
 
-**Sign in once** from your terminal:
+**Sign in once:**
 
 ```bash
 codex mcp login tsp
 ```
 
-That opens your browser to authorize and caches the result; start Codex normally afterward. Adding the block alone won't connect you until you run `codex mcp login tsp` once. If your Codex build can't reach the URL directly, use the bridge form instead (keep only one `tsp` block):
+That opens your browser to authorize and caches the result. Start Codex normally afterward. Adding the config alone leaves you unsigned in until you run `codex mcp login tsp` once. If your Codex build can't reach the URL directly, use the bridge form instead (keep only one `tsp` block):
 
 ```toml
 [mcp_servers.tsp]
@@ -94,11 +94,11 @@ args = ["-y", "mcp-remote", "https://treestructuredplanning.com/mcp/"]
 
 If `codex mcp login` errors on an older build, enable Codex's streamable-HTTP client by adding a `[features]` block with `rmcp_client = true`, then retry.
 
-Skills surface through `/skills`.
+Skills surface through `/skills`. After login, ask Codex to list your TSP plans.
 
 ## What you get
 
-Eight skills, each triggered by natural language or its slash form. However you connect, you get the same set wired to your plans — only the way you reach them differs by harness (Claude Code's `/tsp:` commands, Cursor's `/` skill menu, Codex's `/skills`):
+Eight skills, each triggered by natural language or its slash form. However you connect, you get the same set wired to your plans. Only the way you reach them differs by harness (Claude Code's `/tsp:` commands, Cursor's `/` skill menu, Codex's `/skills`):
 
 | Skill             | Trigger                               | What it does                                                                                                                      |
 | ----------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
