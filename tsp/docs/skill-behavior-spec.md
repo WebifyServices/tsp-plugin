@@ -21,8 +21,10 @@ For the canonical living source for each skill, see
 - The MCP server has NO filesystem access. Every skill that needs to
   read or write files does so locally inside the harness, then ships
   bounded payloads to MCP.
-- Selectors default to `branch_name="main"` everywhere. V1 is
-  branch-naive; `tsp.branches.list` is deferred Future work.
+- Selectors carry a real `branch_name`, defaulting to `"main"`. Every
+  skill below works whichever branch the call resolves to; see
+  [Branch selection](#branch-selection) for the rule, the discovery and
+  creation tools, the errors, and the merge boundary.
 - Every worker follows [Worker session lifecycle](./application-sessions.md):
   register independently, pass the active handle in ordinary tool payloads,
   renew or resume its lease, and close at worker shutdown. Workers sharing
@@ -34,6 +36,51 @@ For the canonical living source for each skill, see
   `PlanRepository`; supplementary fields land on the workflow store
   and are mirrored into the plan's `workflow_state` Y.Map for live
   canvas updates.
+
+## Branch selection
+
+Branch work is a mode, not a skill. Every skill below runs unchanged on
+whichever branch the call resolves to, so a skill port needs no
+branch-specific orchestration — only the addressing rule and the two
+discovery tools.
+
+**Selecting.** `branch_name` names the branch a call runs against. It and
+`plan_id` resolve independently: an explicitly-sent field wins, an omitted
+one inherits what `tsp.context.set` selected, and an omitted branch falls
+back to `"main"` when the worker has no default for *that same plan*. So
+the ordinary shape is: call `tsp.context.set` once with the plan and
+branch, then send neither field again. Restating `plan_id` on later calls
+is safe — it keeps the selected branch. Sending `branch_name="main"`
+explicitly is how a worker deliberately returns to the trunk.
+
+**Discovering.** `tsp.branches.list` returns every branch on the plan,
+main first, with node/edge counts and a `selected` flag marking the one
+this worker is on. It is the only plan-scoped tool that still answers when
+the selected branch is gone, so it is also the recovery path: no branch
+flagged `selected` means the selection went stale.
+
+**Creating.** `tsp.branch.create` takes `new_branch_name` and forks from
+the branch the call targets — the one `tsp.context.set` selected, or
+`main`. Names are lowercase letters, digits, `.`, `_` and `-`, 1-100
+characters, starting and ending with a letter or digit, no `..` and no
+`.lock` suffix. The output's `selector` addresses the new branch; pass it
+to `tsp.context.set` to move onto it.
+
+**Errors.** A branch the plan does not have is `BRANCH_NOT_FOUND` — never
+silently answered from `main`, so a stale or mistyped branch fails loudly
+instead of reading and then writing the trunk. Recover with
+`tsp.branches.list`. A branch a live generation session owns refuses
+structure writes with `PLAN_FORBIDDEN` and
+`reason: generation_session_active`; act on that branch's output through
+`tsp.review.submit`, or target another branch. `tsp.branch.create` adds
+`INVALID_INPUT` (illegal name), `CONFLICT` (name taken, or contention on
+the base) and `LIMIT_EXCEEDED` (the plan is at its tier branch limit).
+
+**Merging is the human's.** No MCP tool merges, publishes or promotes a
+branch, and none is planned. Branch work reaches `main` only when a person
+merges it in the app. A skill must never present branch work as landed in
+the plan, and must never work around the absence by copying a branch's
+content onto `main`: report the branch by name and let the human decide.
 
 ## Skills
 
@@ -231,6 +278,8 @@ claim nodes.
 | Tool                                    | Tier | Scopes                             |
 | --------------------------------------- | ---- | ---------------------------------- |
 | `tsp.context.set/get/clear`             | Free | `plans:read`                       |
+| `tsp.branches.list`                     | Free | `plans:read`                       |
+| `tsp.branch.create`                     | Pro  | `structure:write`, `plans:read`    |
 | `tsp.plans.list`                        | Free | `plans:read`                       |
 | `tsp.prd.get`/`tsp.prd.sections`        | Free | `plans:read`                       |
 | `tsp.node.get/parent/children/siblings` | Free | `plans:read`                       |
