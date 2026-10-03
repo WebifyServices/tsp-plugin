@@ -29,7 +29,7 @@ Y.js room.
 - `node_id`: the TSP node id to implement (required).
 - `plan_id` and `branch_name`: optional; default to the session's
   prior `tsp.context.set` value, then to `branch_name="main"`.
-- `session_id`: a stable id for this implementation session (the
+- `agent_session_id`: a stable id for this implementation session (the
   harness generates one if not supplied; reuse it across the loop).
 
 ## Required MCP tools
@@ -77,7 +77,7 @@ The MCP server has no filesystem access. The harness:
 ### Atomic flow
 
 ```text
-1. tsp.workflow.record_start(node_id=<node>, session_id=<session>,
+1. tsp.workflow.record_start(node_id=<node>, agent_session_id=<session>,
                              harness=<harness>, summary=<summary>).
    # A node with incomplete depends_on targets commits "blocked"
    # (blockers named in incomplete_dependencies) — investigate
@@ -87,7 +87,7 @@ The MCP server has no filesystem access. The harness:
 2. Read referenced files; make edits using harness tools.
 3. Run tests covering the change.
 4. tsp.workflow.record_result(
-     node_id=<node>, session_id=<session>,
+     node_id=<node>, agent_session_id=<session>,
      result_status="complete" if AC satisfied and tests pass else
                    "in_progress" or "blocked",
      summary=<one-paragraph summary>,
@@ -112,9 +112,9 @@ For each leaf in routing.leaf_queue (in order):
                            require_acceptance_criteria=true).
   2. If leaf routes to blocked / needs_refinement, stop and surface
      why; do NOT skip ahead.
-  3. tsp.workflow.record_start(node_id=<leaf>, session_id=<session>, ...).
+  3. tsp.workflow.record_start(node_id=<leaf>, agent_session_id=<session>, ...).
   4. Implement the leaf locally; run leaf-relevant tests.
-  5. tsp.workflow.record_result(node_id=<leaf>, session_id=<session>, ...).
+  5. tsp.workflow.record_result(node_id=<leaf>, agent_session_id=<session>, ...).
 
 After every leaf completes, re-run tsp.implement.prepare on the
 parent node and decide:

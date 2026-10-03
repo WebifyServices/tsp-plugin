@@ -87,7 +87,7 @@ only `criterion_id` / `status` / `note` — put a short evidence string
 ```text
 tsp.workflow.record_result(
   node_id=<node>,
-  session_id=<this-session>,
+  agent_session_id=<this-session>,
   result_status="complete" if all AC satisfied else "in_progress",
   summary=<short summary>,
   acceptance_results=[{criterion_id, status, note}, ...],

@@ -8,8 +8,8 @@ the canvas beside the node you work on, so name the task in a few words
 `TSP Project Roster`), so parallel workers stay distinguishable. Keep
 its private `session_handle` and `resume_handle` in this worker's private runtime
 state. Each parallel worker registers separately even when OAuth credentials are
-shared. A workflow `session_id` from `tsp.workflow.record_start` is a different
-concept and cannot substitute for either handle.
+shared. A workflow `agent_session_id` from `tsp.workflow.record_start` is a
+different concept and cannot substitute for either handle.
 
 Include `session_handle` in the ordinary `payload` arguments of every subsequent
 tool, including explicit-plan calls and `tsp_context_get` / `tsp_context_set` /

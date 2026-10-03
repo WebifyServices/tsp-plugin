@@ -43,7 +43,7 @@ feature, an explicit opt-in when it ships).
 
 Collected from session state (the skill asks once when ambiguous):
 
-- `session_id`: the stable id reused across `record_start` /
+- `agent_session_id`: the stable id reused across `record_start` /
   `record_result` this session.
 - `plan_id` and `branch_name`: from `tsp.context.get`.
 - Active node ids: nodes `record_start` was called on this session
@@ -90,7 +90,14 @@ The MCP server has no filesystem access. The harness:
    `acceptance_results` composed directly as
    `{criterion_id, status, note}` entries (positional ids `ac-1`,
    `ac-2`, …; never re-type criterion text; a short evidence string
-   goes in `note`), and the supplementary fields collected.
+   goes in `note`), the supplementary fields collected, and a fresh
+   `idempotency_key` (e.g. a UUID) minted once per node's result. If
+   the call fails or times out, retry with the SAME key: a result that
+   already landed is replayed (`replayed: true`), never recorded twice;
+   a `CONFLICT` with `result_in_flight` means the first call is still
+   landing, so wait a moment and retry the same call again.
+   Pass the `run_id` `record_start` returned so the result lands on
+   that run.
 4. `tsp.session_note.create` once, covering all active node ids.
 5. Show the final summary plus the recommended next command.
 
@@ -117,7 +124,7 @@ it.
 ```text
 🤝 Handoff complete
    plan: <plan_id>@<branch>
-   session: <session_id>
+   session: <agent_session_id>
    nodes recorded:
      ✅ <node_id> — complete
      🟡 <node_id> — in_progress

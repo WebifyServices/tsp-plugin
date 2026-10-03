@@ -47,7 +47,7 @@ discovery tools.
 **Selecting.** `branch_name` names the branch a call runs against. It and
 `plan_id` resolve independently: an explicitly-sent field wins, an omitted
 one inherits what `tsp.context.set` selected, and an omitted branch falls
-back to `"main"` when the worker has no default for *that same plan*. So
+back to `"main"` when the worker has no default for _that same plan_. So
 the ordinary shape is: call `tsp.context.set` once with the plan and
 branch, then send neither field again. Restating `plan_id` on later calls
 is safe — it keeps the selected branch. Sending `branch_name="main"`
@@ -219,19 +219,19 @@ per-skill cap; the skill carries the summary and points here:
    next steps.
 3. For each active node:
     1. Judge each acceptance criterion locally against the session's artifacts (diff, tests run, files read): `satisfied` / `missing` / `unclear` / `contradicted`, bound by meaning rather than vocabulary; removed diff lines never count as `satisfied` evidence. Compose `acceptance_results` entries directly as `{criterion_id, status, note}` — positional `criterion_id` (`ac-1`, `ac-2`, …), a short evidence string in `note`, never re-typed criterion text (the server resolves the id to the canonical wording).
-    2. `tsp.workflow.record_result(node_id, session_id, result_status, summary, touched_files, acceptance_results, tests_run, blockers, next_steps)` — the response's `new_status` is what the status rules actually committed; `transition_note` states any implicit transition and `incomplete_dependencies` names blocking node ids. Valid standalone (no prior `record_start`) for recording already-finished work retroactively in one call.
-4. `tsp.session_note.create(plan_id?, session_id, node_ids, summary, next_steps, blockers, local_context)` — one note covering the whole session and every active node id.
+    2. `tsp.workflow.record_result(node_id, agent_session_id, run_id, idempotency_key, result_status, summary, touched_files, acceptance_results, tests_run, blockers, next_steps)` — mint `idempotency_key` once per result and resend it on retry (a recorded key replays, never records twice; `result_in_flight` means the first call is still landing, so retry the same call shortly); the response's `new_status` is what the status rules actually committed; `transition_note` states any implicit transition and `incomplete_dependencies` names blocking node ids. Valid standalone (no prior `record_start`) for recording already-finished work retroactively in one call.
+4. `tsp.session_note.create(plan_id?, agent_session_id, node_ids, summary, next_steps, blockers, local_context)` — one note covering the whole session and every active node id.
 5. Show the final handoff summary plus the recommended next command.
 
 Extended blocking conditions:
 
-| Condition                                                                                                                     | Behavior                                                                                                                             |
-| ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Multiple active nodes                                                                                                         | Loop `record_result` per node; one `session_note.create` covers all of them.                                                         |
-| Active node's `NodeWorkflowState.active_session_id` (read via `tsp.workflow.get_state`) differs from the current `session_id` | A prior session crashed without `record_result`. Surface the conflict; default to overwrite (soft-warn), ask first when interactive. |
-| `record_result` fails for one node                                                                                            | Continue with the others; surface the failed node id in the summary so the user can retry manually.                                  |
-| Acceptance criteria not judgeable (no diff/tests to weigh)                                                                    | Record from harness checks alone; note the limitation in the session note's `local_context`.                                         |
-| No active nodes touched this session                                                                                          | Skip per-node `record_result`; still create a session note so the canvas captures the session intent.                                |
+| Condition                                                                                                                           | Behavior                                                                                                                             |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Multiple active nodes                                                                                                               | Loop `record_result` per node; one `session_note.create` covers all of them.                                                         |
+| Active node's `NodeWorkflowState.active_session_id` (read via `tsp.workflow.get_state`) differs from the current `agent_session_id` | A prior session crashed without `record_result`. Surface the conflict; default to overwrite (soft-warn), ask first when interactive. |
+| `record_result` fails for one node                                                                                                  | Continue with the others; surface the failed node id in the summary so the user can retry manually.                                  |
+| Acceptance criteria not judgeable (no diff/tests to weigh)                                                                          | Record from harness checks alone; note the limitation in the session note's `local_context`.                                         |
+| No active nodes touched this session                                                                                                | Skip per-node `record_result`; still create a session note so the canvas captures the session intent.                                |
 
 State writes: `Node.status` through `record_result`; supplementary
 fields and session note in the workflow store.
