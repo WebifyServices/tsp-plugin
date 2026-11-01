@@ -4,7 +4,9 @@ Tree-Structured Planning (TSP) is a canvas for planning software systems that co
 
 Install once, then your agent can author plans, implement off a node, record progress, reverse-map a diff to the nodes that govern it, and hand a session off when you stop. All three harnesses get the same skills against the same MCP server. Only the install step and how you invoke a skill change. The skill contracts are written to port to any MCP-aware harness (Cline and others re-implement against the same spec), so the three supported here are peers, not a primary plus ports.
 
-> This repository is a published mirror. The canonical source lives in the private TSP monorepo and this artifact is synced out on each release, so the skills and manifests here are generated, not hand-edited. See [CONTRIBUTING](./CONTRIBUTING.md) before opening a PR.
+> This repository is a published mirror, updated on each release, so the skills and manifests here are generated, not hand-edited. See [CONTRIBUTING](./CONTRIBUTING.md) before opening a PR.
+
+The optional [TSP gateway](https://www.npmjs.com/package/@treestructuredplanning/gateway) lets the canvas launch, stop, and resume Claude Code and Codex sessions on a paired computer. In Claude Code, `/tsp:connect` sets it up in one command (see [Connect this computer for Build](#connect-this-computer-for-build)). Keep the plugin installed for the launched agent’s TSP tools. The gateway never changes your harness permissions and never answers approval prompts.
 
 ## What you need first
 
@@ -28,7 +30,7 @@ Add the marketplace and install the plugin:
 
 The first command registers this repo as a Claude Code plugin marketplace. The second installs the `tsp` plugin from it. These `/plugin` commands are Claude Code's (terminal or IDE). In Claude Desktop or claude.ai, add `https://treestructuredplanning.com/mcp/` as a custom connector instead. Claude Code may ask you to reload the session so the new skills and the MCP server register. On first use it discovers the authorization server from the MCP server's response and drives the OAuth 2.1 + PKCE browser sign-in for you. The result is stored and refreshed automatically. If the `tsp` server later shows as needing authentication, run `/mcp`, select `tsp`, and choose **Reauthenticate**.
 
-Skills surface as `/tsp:<skill>` slash commands. Type `/tsp:` to autocomplete the eight. A finished sign-in is not the whole check: ask Claude to list your TSP plans. A plan list, even an empty one, means the read path is live.
+Skills surface as `/tsp:<skill>` slash commands. Type `/tsp:` to autocomplete the eight skills and the `connect` command. A finished sign-in is not the whole check: ask Claude to list your TSP plans. A plan list, even an empty one, means the read path is live.
 
 ### Cursor
 
@@ -112,6 +114,41 @@ Eight skills, each triggered by natural language or its slash form. However you 
 | `handoff`         | `/tsp:handoff`, "wrap up"             | Close a session: write status, touched files, blockers, and next steps back to the canvas.                                        |
 
 The MCP server has no filesystem access by design. Every skill that needs your code reads it locally inside your agent and ships only bounded snippets to the server, which returns structured results the harness renders.
+
+## Connect this computer for Build
+
+`/tsp:connect` is a command, not a skill your agent picks on its own: it runs only when you type it (its skill file sets `disable-model-invocation`). Run it in Claude Code inside the repository you want TSP to build in. Its whole source is [`tsp/skills/connect/SKILL.md`](./tsp/skills/connect/SKILL.md). It asks Claude to run one command, which you approve through your normal permission prompt:
+
+```sh
+npx -y @treestructuredplanning/gateway@0.1.1 connect [folder]
+```
+
+That is the published [TSP gateway](https://www.npmjs.com/package/@treestructuredplanning/gateway) package at a pinned version, and `connect` does the following:
+
+- **Pairs this computer** with your TSP account, only after you approve in the browser window it opens. An existing working pairing is kept.
+- **Registers the repository folder** (the current one unless you name another). The folder must be a clone with a GitHub remote.
+- **Starts the gateway at login** and prints its status, plus the steps left to you in each folder, such as signing in or running `claude` or `codex` once there to accept its trust prompt.
+
+What it writes on your computer:
+
+| What           | Where                                                                                                                              |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Login item     | `~/Library/LaunchAgents/com.treestructuredplanning.tsp-gateway.plist` (macOS), a user systemd unit (Linux), a logon task (Windows) |
+| Config         | `~/.config/tsp-gateway/config.json`: pairing identity, registered folders, captured `PATH` (`%APPDATA%\tsp-gateway` on Windows)    |
+| Credential     | One OS credential-store entry, `com.treestructuredplanning.gateway`, holding the pairing's refresh token                           |
+| State and logs | `~/.local/state/tsp-gateway` (`%LOCALAPPDATA%\tsp-gateway` on Windows)                                                             |
+
+What it never does: it never sets or changes your Claude Code or Codex permission settings, allowed tools or configuration, and never passes a permission-bypassing flag. Sessions TSP launches inherit your own defaults. Only you can start it, approve pairing, sign in to a harness or accept a folder's trust prompt. The gateway only connects outward, to TSP, and accepts no inbound connections. What TSP can ask it to do, and what it sends, is on the [gateway's page](https://www.npmjs.com/package/@treestructuredplanning/gateway).
+
+Running it again is safe and quick: a working pairing, a registered folder and a current login item are left as they are. Run outside a repository, it keeps your registered folders and repairs the rest, which also fixes a stopped or outdated gateway.
+
+To undo it, run:
+
+```sh
+npx -y @treestructuredplanning/gateway@0.1.1 disconnect
+```
+
+`disconnect` removes the login item and revokes the pairing in TSP (the machine disappears from Settings), then deletes the credential-store entry. Your registered folders stay in the config file; delete `~/.config/tsp-gateway` and `~/.local/state/tsp-gateway` too if you want no trace left.
 
 ## Learn more
 
