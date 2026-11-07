@@ -2,10 +2,8 @@
 
 Before using TSP tools, obtain an application session for this individual worker.
 Call `tsp_session_register` (canonical `tsp.session.register`) with
-`payload={"name":"<short worker name>"}`. Collaborators see this name on
-the canvas beside the node you work on, so name the task in a few words
-(`Roster`, `Billing fix`), not the harness or project (`Claude Code`,
-`TSP Project Roster`), so parallel workers stay distinguishable. Keep
+`payload={"name":"<short task name>"}`; use the name a Build prompt gives you,
+otherwise follow the `name` field's description. Keep
 its private `session_handle` and `resume_handle` in this worker's private runtime
 state. Each parallel worker registers separately even when OAuth credentials are
 shared. A workflow `agent_session_id` from `tsp.workflow.record_start` is a

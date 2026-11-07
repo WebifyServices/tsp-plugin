@@ -120,7 +120,7 @@ The MCP server has no filesystem access by design. Every skill that needs your c
 `/tsp:connect` is a command, not a skill your agent picks on its own: it runs only when you type it (its skill file sets `disable-model-invocation`). Run it in Claude Code inside the repository you want TSP to build in. Its whole source is [`tsp/skills/connect/SKILL.md`](./tsp/skills/connect/SKILL.md). It asks Claude to run one command, which you approve through your normal permission prompt:
 
 ```sh
-npx -y @treestructuredplanning/gateway@0.1.1 connect [folder]
+npx -y @treestructuredplanning/gateway@0.1.2 connect [folder]
 ```
 
 That is the published [TSP gateway](https://www.npmjs.com/package/@treestructuredplanning/gateway) package at a pinned version, and `connect` does the following:
@@ -145,7 +145,7 @@ Running it again is safe and quick: a working pairing, a registered folder and a
 To undo it, run:
 
 ```sh
-npx -y @treestructuredplanning/gateway@0.1.1 disconnect
+npx -y @treestructuredplanning/gateway@0.1.2 disconnect
 ```
 
 `disconnect` removes the login item and revokes the pairing in TSP (the machine disappears from Settings), then deletes the credential-store entry. Your registered folders stay in the config file; delete `~/.config/tsp-gateway` and `~/.local/state/tsp-gateway` too if you want no trace left.
