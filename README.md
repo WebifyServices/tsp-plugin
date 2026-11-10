@@ -13,8 +13,6 @@ The optional [TSP gateway](https://www.npmjs.com/package/@treestructuredplanning
 - One of [Claude Code](https://code.claude.com), [Cursor](https://cursor.com) (2.5 and later), or [Codex](https://developers.openai.com/codex), whichever you already use.
 - A TSP account at [treestructuredplanning.com](https://treestructuredplanning.com). Sign in through your browser. No API keys or tokens to paste. Cursor and Codex still need the `tsp` server pointed at (see the install sections below). Only the credential handoff is automatic.
 
-The MCP server URL is production (`https://treestructuredplanning.com/mcp/`) everywhere. If you run TSP somewhere else, change the `url` in the Cursor or Codex config below. Claude Code's marketplace install is pinned to this repo's shipped `tsp/.mcp.json`, so pointing it elsewhere means installing from a fork or clone with that file edited, not the marketplace command.
-
 ## Install
 
 Pick your harness. Each is a quick, one-time setup. These steps match the in-app [Connect your agent](https://treestructuredplanning.com/docs/drive-with-your-agent/connect-your-agent) guide.
@@ -120,7 +118,7 @@ The MCP server has no filesystem access by design. Every skill that needs your c
 `/tsp:connect` is a command, not a skill your agent picks on its own: it runs only when you type it (its skill file sets `disable-model-invocation`). Run it in Claude Code inside the repository you want TSP to build in. Its whole source is [`tsp/skills/connect/SKILL.md`](./tsp/skills/connect/SKILL.md). It asks Claude to run one command, which you approve through your normal permission prompt:
 
 ```sh
-npx -y @treestructuredplanning/gateway@0.1.2 connect [folder]
+npx -y @treestructuredplanning/gateway@0.1.3 connect [folder]
 ```
 
 That is the published [TSP gateway](https://www.npmjs.com/package/@treestructuredplanning/gateway) package at a pinned version, and `connect` does the following:
@@ -145,7 +143,7 @@ Running it again is safe and quick: a working pairing, a registered folder and a
 To undo it, run:
 
 ```sh
-npx -y @treestructuredplanning/gateway@0.1.2 disconnect
+npx -y @treestructuredplanning/gateway@0.1.3 disconnect
 ```
 
 `disconnect` removes the login item and revokes the pairing in TSP (the machine disappears from Settings), then deletes the credential-store entry. Your registered folders stay in the config file; delete `~/.config/tsp-gateway` and `~/.local/state/tsp-gateway` too if you want no trace left.

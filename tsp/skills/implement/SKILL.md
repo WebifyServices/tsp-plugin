@@ -12,17 +12,14 @@ source of truth: this skill creates an implementation brief, routes
 atomic vs. non-atomic work, records progress back to TSP, and stops
 when the plan says the node is blocked or under-refined.
 
-This skill is harness-portable. It assumes only the MCP server's
-tools are available; nothing about Claude Code, slash commands, or
-plugin orchestration is baked into the tool contract.
+This skill is harness-portable: it assumes only the MCP server's tools.
 
 ## Capability
 
 `implement <node-id>` — pick a node, build a routing decision, then
 either run a single-pass implementation (atomic node) or walk the
 subtree's atomic leaves in dependency order (non-atomic node), with
-status writes flowing back to the canvas live through the plan's
-Y.js room.
+status writes showing on the canvas live.
 
 ## Inputs
 
@@ -44,6 +41,8 @@ Y.js room.
   work finishes OR is abandoned. It is not an optional courtesy. Skipping
   it leaves the node falsely shown as live and stuck `in_progress` until a
   server-side inactivity timeout force-expires the session.
+- `tsp.session_note.create` — exactly one per implementation session,
+  after the last `record_result`, written as `handoff` writes it.
 
 For non-atomic nodes the skill calls `tsp.implement.prepare` again
 per leaf so each leaf gets its own brief and routing pass.
@@ -102,6 +101,10 @@ The MCP server has no filesystem access. The harness:
    # re-type criterion text. new_status is the committed status;
    # transition_note explains implicit transitions. Retroactive
    # recording needs only this one call (no record_start).
+5. tsp.session_note.create(agent_session_id=<session>, node_ids=<every
+   node recorded>, ...) once, after record_result: the note `handoff`
+   step 4 defines (../handoff/SKILL.md, ../../docs/skill-behavior-spec.md):
+   what was done, decisions taken with the person, what is next.
 ```
 
 ### Non-atomic flow
@@ -123,6 +126,7 @@ parent node and decide:
   - Otherwise:
       tsp.workflow.record_result(node_id=<parent>, result_status="in_progress", ...)
       and call out unfinished AC.
+Then step 5 of the atomic flow, once for the whole run.
 ```
 
 ## Blocking conditions
@@ -157,15 +161,10 @@ and the specific missing-prereq list.
 Every `record_start` claims `Node.status = "in_progress"` and stores
 the active session id; every `record_result` either keeps the status
 in progress, transitions to `blocked`, or transitions to `complete`,
-and clears the active session for terminal outcomes. Status writes
-flow through `PlanRepository` so the canvas reflects the change
-immediately via the plan's Y.js room.
+and clears the active session for terminal outcomes. The canvas
+reflects each status write immediately.
 
-A claimed session is a promise to close it. The active session id drives
-the canvas live-session indicator, so every `record_start` must be paired
-with a `record_result` on completion or abandonment — otherwise the node
-keeps showing as live. As a safety net for crashed or cut-off sessions, a
-server-side reaper auto-expires any session with no activity past an
-inactivity TTL (clearing the indicator and stamping an expiry marker so
-the auto-closed session stays distinguishable from a clean close), but
-that is a backstop, not a substitute for closing the session yourself.
+A claimed session is a promise to close it: pair every `record_start`
+with a `record_result` on completion or abandonment, or the node keeps
+showing as live. TSP expires a session after a period with no activity,
+but that is a backstop, not a substitute for closing the session yourself.

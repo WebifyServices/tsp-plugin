@@ -1,6 +1,6 @@
 # Contributing
 
-This repository is a published mirror, not the place where the plugin is developed. The skills, manifests, and docs here are generated from the private TSP monorepo and synced out on each release. A pull request opened directly against this repo would be overwritten by the next sync, so the right path depends on what you want to do.
+This repository is a published mirror, not the place where the plugin is developed. The skills, manifests, and docs here are generated from our source and synced on each release. A pull request opened directly against this repo would be overwritten by the next sync, so the right path depends on what you want to do.
 
 If you found a bug or want to request a change, open an issue here. That's the fastest way to get it in front of the team, and changes are then made upstream and flow back out on the next release.
 

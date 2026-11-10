@@ -13,11 +13,10 @@ runtime symptoms. The MCP server has no filesystem access; the
 harness extracts frames and symbols locally and sends bounded
 content to `tsp.debug.map`.
 
-V1 backing reuses the same `ImpactMappingService` as `tsp.impact.map`.
-Stack frames are parsed for paths and symbols, then fed into the
-shared keyword + recorded-code-ref + edge-traversal pipeline. When
-frames are unparseable, the service falls back to keyword search over
-the error text.
+`tsp.debug.map` uses the same mapping as `tsp.impact.map`. Stack
+frames are parsed for paths and symbols, then matched by keyword,
+recorded code references and edge traversal. When frames are
+unparseable, it falls back to keyword search over the error text.
 
 ## Capability
 

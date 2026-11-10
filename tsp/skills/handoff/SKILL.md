@@ -10,22 +10,21 @@ First follow [Worker lifecycle](../../docs/application-sessions.md).
 Loop closure between a coding agent and the canvas. When a session
 finishes (work shipped, blocked, or paused), `handoff` summarizes
 local state and writes it back to TSP so the next session — human or
-agent — picks up from a coherent state. The canvas reflects every
-write through the plan's Y.js room within one tick.
+agent — picks up from a coherent state. The canvas shows every write
+live.
 
 Closing the loop is required, not optional. The active session id set by
 `record_start` drives the canvas live-session indicator, so every claimed
 session MUST be released with `record_result` on completion OR
-abandonment; leaving it open keeps the node falsely shown as live. A
-server-side reaper auto-expires sessions with no activity past an
-inactivity TTL as a backstop for crashed or cut-off sessions, but
-`handoff` is how you close the loop deliberately.
+abandonment; leaving it open keeps the node falsely shown as live. TSP
+expires a session after a period with no activity, as a backstop for
+crashed or cut-off sessions, but `handoff` is how you close the loop
+deliberately.
 
 This skill is pure orchestration over MCP tools. It owns no backend
 files; persistence is handled by the MCP workflow-write tools
-(`tsp.workflow.record_result` and `tsp.session_note.create`), which
-write through `WorkflowStateService` and broadcast on the plan's
-Y.js room.
+(`tsp.workflow.record_result` and `tsp.session_note.create`), and the
+canvas shows their writes live.
 
 ## Capability
 
@@ -36,8 +35,7 @@ supplementary fields the agent collected, then create one session
 note covering the whole session for free-text handoff context.
 Output is a one-screen summary the user can confirm before exit.
 The judging is yours, done locally — never invoke a metered
-operation from this skill (the server-side LLM judge is a roadmap
-feature, an explicit opt-in when it ships).
+operation from this skill.
 
 ## Inputs
 
@@ -49,19 +47,19 @@ Collected from session state (the skill asks once when ambiguous):
 - Active node ids: nodes `record_start` was called on this session
   with no terminal result yet.
 - `previous_active_session_id` per active node: read from
-  `NodeWorkflowState.active_session_id` via `tsp.workflow.get_state`,
+  `state.active_session_id` in `tsp.workflow.get_state`,
   used to detect a stale handoff (a prior session that crashed
   without `record_result`). A non-null `expired_at` on the state means
-  the server-side reaper already force-closed that prior session for
-  inactivity — note it in the handoff so the takeover is explicit.
+  TSP already expired that prior session for inactivity — note it in
+  the handoff so the takeover is explicit.
 - A free-text summary, optional `next_steps`, `blockers`, and
   `local_context`.
 
 ## Required MCP tools
 
 - `tsp.context.get` — resolve session-scoped plan and branch.
-- `tsp.workflow.get_state` — read each active node's
-  `NodeWorkflowState` for the stale-session check.
+- `tsp.workflow.get_state` — read each active node's workflow
+  `state` for the stale-session check.
 - `tsp.node.execution_context` (optional) — re-fetch a node's
   acceptance criteria when they aren't already in session context.
 - `tsp.workflow.record_result` — terminal status per active node.
@@ -142,12 +140,11 @@ When errors occurred during the loop, append:
 
 ## State writes
 
-This skill only writes to `Node.status` (canonically through
-`PlanRepository`) and to `NodeWorkflowState` plus `SessionNote` in
-the workflow-state store. All writes flow through the plan's Y.js
-room so the canvas reflects the session's results within a single
-frame.
+This skill only writes each active node's `status` and workflow
+state through `tsp.workflow.record_result`, and one session note
+through `tsp.session_note.create`. The canvas reflects the session's
+results as soon as they land.
 
 The skill never creates, deletes, or restructures nodes; it never
-writes to generation branches (`branch_name="main"` is the V1
-default and the only branch workflow writes target).
+writes to generation branches (`branch_name="main"` is the default
+and the only branch workflow writes target).

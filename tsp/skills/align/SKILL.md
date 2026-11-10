@@ -15,9 +15,8 @@ each criterion itself. It costs the user no TSP credits.
 
 `tsp.alignment.assess` exists as a free deterministic keyword check
 (no LLM, no credits) but binds criteria by vocabulary, not meaning —
-your own reading of the code is strictly better evidence. A
-server-side LLM judge as an explicit, priced second opinion is on
-the roadmap; never invoke a metered operation from this skill.
+your own reading of the code is strictly better evidence. Never
+invoke a metered operation from this skill.
 
 ## Capability
 
