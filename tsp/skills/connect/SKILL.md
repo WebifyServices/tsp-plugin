@@ -16,7 +16,7 @@ Run exactly this one command, in the session's current working directory (the
 user's repository), with the user's folder argument appended only if they gave one:
 
 ```sh
-npx -y @treestructuredplanning/gateway@0.2.0 connect $ARGUMENTS
+npx -y @treestructuredplanning/gateway@0.3.0 connect $ARGUMENTS
 ```
 
 The version is pinned so the code that runs is the published release this plugin
@@ -57,9 +57,15 @@ again is always safe.
 To undo everything, the user runs:
 
 ```sh
-npx -y @treestructuredplanning/gateway@0.2.0 disconnect
+npx -y @treestructuredplanning/gateway@0.3.0 disconnect
 ```
 
 That removes the login item and revokes the pairing in TSP. The full behaviour is
 documented on the gateway's npm page,
 https://www.npmjs.com/package/@treestructuredplanning/gateway.
+
+## Background controls
+
+`start` starts the gateway now and at login. `stop` stops it and disables login startup
+while keeping the link and folders. `run` runs it in the foreground. To upgrade, use
+`npx @treestructuredplanning/gateway@latest update`; this preserves the link and folders.
