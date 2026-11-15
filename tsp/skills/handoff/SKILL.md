@@ -13,18 +13,14 @@ local state and writes it back to TSP so the next session — human or
 agent — picks up from a coherent state. The canvas shows every write
 live.
 
-Closing the loop is required, not optional. The active session id set by
-`record_start` drives the canvas live-session indicator, so every claimed
-session MUST be released with `record_result` on completion OR
-abandonment; leaving it open keeps the node falsely shown as live. TSP
-expires a session after a period with no activity, as a backstop for
-crashed or cut-off sessions, but `handoff` is how you close the loop
-deliberately.
+Closing the loop is required: record each worked node's result on the
+caller's attempt and leave one session note. The session handle authorizes
+these writes; no leaf claim or active-run lease needs to be released.
+Follow the worker lifecycle to close the application session at shutdown.
 
 This skill is pure orchestration over MCP tools. It owns no backend
-files; persistence is handled by the MCP workflow-write tools
-(`tsp.workflow.record_result` and `tsp.session_note.create`), and the
-canvas shows their writes live.
+files; `tsp.workflow.record_result` writes the attempt report and retained
+node-status projection, and `tsp.session_note.create` records handoff context.
 
 ## Capability
 
@@ -41,25 +37,18 @@ operation from this skill.
 
 Collected from session state (the skill asks once when ambiguous):
 
-- `agent_session_id`: the stable id reused across `record_start` /
-  `record_result` this session.
+- `session_handle`: the current worker's private credential, kept in runtime state.
+- `agent_session_id`: the immutable public session id returned by registration.
 - `plan_id` and `branch_name`: from `tsp.context.get`.
-- Active node ids: nodes `record_start` was called on this session
-  with no terminal result yet.
-- `previous_active_session_id` per active node: read from
-  `state.active_session_id` in `tsp.workflow.get_state`,
-  used to detect a stale handoff (a prior session that crashed
-  without `record_result`). A non-null `expired_at` on the state means
-  TSP already expired that prior session for inactivity — note it in
-  the handoff so the takeover is explicit.
+- Active node ids: nodes worked on within the attempt's scope with no terminal
+  result yet. If the credential is refused or superseded, stop and tell the
+  person; Continue issues the next agent a new epoch on this attempt.
 - A free-text summary, optional `next_steps`, `blockers`, and
   `local_context`.
 
 ## Required MCP tools
 
 - `tsp.context.get` — resolve session-scoped plan and branch.
-- `tsp.workflow.get_state` — read each active node's workflow
-  `state` for the stale-session check.
 - `tsp.node.execution_context` (optional) — re-fetch a node's
   acceptance criteria when they aren't already in session context.
 - `tsp.workflow.record_result` — terminal status per active node.
@@ -94,8 +83,8 @@ The MCP server has no filesystem access. The harness:
    already landed is replayed (`replayed: true`), never recorded twice;
    a `CONFLICT` with `result_in_flight` means the first call is still
    landing, so wait a moment and retry the same call again.
-   Pass the `run_id` `record_start` returned so the result lands on
-   that run.
+   The session handle routes the result to your attempt; do not pass
+   a run id or start a second reporting path.
 4. `tsp.session_note.create` once, covering all active node ids.
 5. Show the final summary plus the recommended next command.
 
@@ -112,7 +101,7 @@ in `../docs/skill-behavior-spec.md` under `handoff`.
 | No reliable mapping between local state and a TSP node  | Skip `record_result`; create session note only |
 
 The "no reliable mapping" row matters: if the agent worked on
-something not governed by a node it called `record_start` on, do NOT
+something not governed by a node in its attempt scope, do NOT
 update an unrelated node's status to fake loop closure. Create a
 session note that explains the mismatch so the next session resolves
 it.

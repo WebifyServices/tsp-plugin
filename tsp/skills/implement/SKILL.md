@@ -7,12 +7,8 @@ description: Turn a TSP node into shipped code using tsp.implement.prepare for r
 
 First follow [Worker lifecycle](../../docs/application-sessions.md).
 
-Turn a TSP node or subtree into actionable code work. TSP is the
-source of truth: this skill creates an implementation brief, routes
-atomic vs. non-atomic work, records progress back to TSP, and stops
-when the plan says the node is blocked or under-refined.
-
-This skill is harness-portable: it assumes only the MCP server's tools.
+TSP is the source of truth: stop when the plan says the node is blocked
+or under-refined. The skill assumes only the MCP server's tools.
 
 ## Capability
 
@@ -33,14 +29,10 @@ status writes showing on the canvas live.
 
 - `tsp.context.get` — resolve session-scoped plan and branch defaults.
 - `tsp.implement.prepare` — build the brief and routing decision.
-- `tsp.workflow.record_start` — claim the active session before work
-  begins. This lights the live-session indicator on the canvas and makes
-  closing the session your responsibility.
-- `tsp.workflow.record_result` — **required** to close the session: write
-  the terminal status (and optional in-progress checkpoints) the moment
-  work finishes OR is abandoned. It is not an optional courtesy. Skipping
-  it leaves the node falsely shown as live and stuck `in_progress` until a
-  server-side inactivity timeout force-expires the session.
+- `tsp.attempt.progress` — record a short milestone with a fresh idempotency key.
+- `tsp.workflow.record_result` — record each node's result on the caller's attempt,
+  including its summary, touched files, checks, tests and code pointer. This also
+  retains the node-status projection until the status-write cutover.
 - `tsp.session_note.create` — exactly one per implementation session,
   after the last `record_result`, written as `handoff` writes it.
 
@@ -76,13 +68,10 @@ The MCP server has no filesystem access. The harness:
 ### Atomic flow
 
 ```text
-1. tsp.workflow.record_start(node_id=<node>, agent_session_id=<session>,
-                             harness=<harness>, summary=<summary>).
-   # A node with incomplete depends_on targets commits "blocked"
-   # (blockers named in incomplete_dependencies) — investigate
-   # before proceeding.
-   Keep the prepare brief in session context; the TSP node is the
-   plan artifact, so never persist the brief as a repo file.
+1. Keep the prepare brief in session context; the TSP node is the plan artifact.
+   Report milestones with tsp.attempt.progress(milestone=<short line>,
+                                               idempotency_key=<fresh key>).
+   Pass node_ids only as State writes says.
 2. Read referenced files; make edits using harness tools.
 3. Run tests covering the change.
 4. tsp.workflow.record_result(
@@ -96,11 +85,11 @@ The MCP server has no filesystem access. The harness:
      blockers=<external blockers>,
      next_steps=<follow-ups for the next session>,
    )
-   # acceptance_results link by the positional criterion_id (ac-1,
+   # acceptance_results link by the stable criterion_id (ac-1,
    # ac-2, …) shown alongside acceptance_criteria on reads — never
    # re-type criterion text. new_status is the committed status;
    # transition_note explains implicit transitions. Retroactive
-   # recording needs only this one call (no record_start).
+   # recording needs only this one call.
 5. tsp.session_note.create(agent_session_id=<session>, node_ids=<every
    node recorded>, ...) once, after record_result: the note `handoff`
    step 4 defines (../handoff/SKILL.md, ../../docs/skill-behavior-spec.md):
@@ -115,12 +104,16 @@ For each leaf in routing.leaf_queue (in order):
                            require_acceptance_criteria=true).
   2. If leaf routes to blocked / needs_refinement, stop and surface
      why; do NOT skip ahead.
-  3. tsp.workflow.record_start(node_id=<leaf>, agent_session_id=<session>, ...).
+  3. Report each milestone with tsp.attempt.progress(
+       milestone=<short line>, idempotency_key=<fresh key>).
+     Pass node_ids only as State writes says.
   4. Implement the leaf locally; run leaf-relevant tests.
   5. tsp.workflow.record_result(node_id=<leaf>, agent_session_id=<session>, ...).
 
 After every leaf completes, re-run tsp.implement.prepare on the
-parent node and decide:
+parent node. Report on the parent only when it is inside your attempt scope;
+otherwise leave the parent rollup to the plan and summarize the leaf results.
+For an in-scope parent, decide:
   - If parent acceptance criteria are now satisfied:
       tsp.workflow.record_result(node_id=<parent>, result_status="complete", ...).
   - Otherwise:
@@ -158,13 +151,17 @@ and the specific missing-prereq list.
 
 ## State writes
 
-Every `record_start` claims `Node.status = "in_progress"` and stores
-the active session id; every `record_result` either keeps the status
-in progress, transitions to `blocked`, or transitions to `complete`,
-and clears the active session for terminal outcomes. The canvas
-reflects each status write immediately.
+The session handle authorizes every write to the caller's attempt. A Build seed
+carries a claim; pass it to tsp.session.register. A non-null `attempt` in the
+response marks a bound session: stay inside its scope and omit `node_ids` on
+every progress call (any you pass must equal the whole scope as a set). A
+hand-run session (`attempt=null`) passes every node it will work on in
+`node_ids` on its first progress only, which opens its attempt. Milestones
+append to the attempt; `record_result` maps complete to finished, in_progress
+to partial, and blocked to blocked, then updates `Node.status` after the fenced
+report commits. Retry a result with the same idempotency key.
 
-A claimed session is a promise to close it: pair every `record_start`
-with a `record_result` on completion or abandonment, or the node keeps
-showing as live. TSP expires a session after a period with no activity,
-but that is a backstop, not a substitute for closing the session yourself.
+There is no exclusive leaf claim, active-run lease or waiting-for-person hold.
+Independent attempts may cover the same node. Continue advances the attempt's
+agent epoch and fences the previous agent. Finish with one session note, then
+follow the worker lifecycle when the worker shuts down.
