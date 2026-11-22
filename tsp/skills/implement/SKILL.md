@@ -33,6 +33,8 @@ status writes showing on the canvas live.
 - `tsp.workflow.record_result` — record each node's result on the caller's attempt,
   including its summary, touched files, checks, tests and code pointer. This also
   retains the node-status projection until the status-write cutover.
+- `tsp.session.renew` — renew every ~2 minutes while coding or testing
+  ([why](../../docs/application-sessions.md#staying-visible-while-you-work)).
 - `tsp.session_note.create` — exactly one per implementation session,
   after the last `record_result`, written as `handoff` writes it.
 

@@ -30,6 +30,9 @@ For the canonical living source for each skill, see
   register independently, pass the active handle in ordinary tool payloads,
   renew or resume its lease, and close at worker shutdown. Workers sharing
   OAuth credentials retain independent defaults across transport reconnections.
+  Renewal, not planning activity, keeps a worker's lease and live cursor: a
+  skill that spends minutes in local code or tests renews about every two
+  minutes rather than issuing reads or notes to stay visible.
 - Strict scope additivity: there is no implicit inheritance
   between scopes.
 
