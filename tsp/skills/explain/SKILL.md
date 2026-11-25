@@ -9,7 +9,7 @@ First follow [Worker lifecycle](../../docs/application-sessions.md).
 
 Return a coherent answer about a TSP plan topic: which nodes govern
 the topic, how they relate, and where the gaps are.
-`tsp.plan.semantic_search` surfaces the most relevant nodes for the
+`tsp_plan_semantic_search` surfaces the most relevant nodes for the
 topic; enrich the top hits with their execution context to ground
 the answer.
 
@@ -22,16 +22,16 @@ context, semantic relationships, and any obvious gaps.
 ## Inputs
 
 - `topic`: the question or topic string (required).
-- `plan_id` and `branch_name`: optional; default to session context.
+- `plan_id`: optional; defaults to session context.
 - `max_results`: how many top hits to enrich (default 5).
 
 ## Required MCP tools
 
-- `tsp.context.get` — resolve session-scoped plan and branch.
-- `tsp.plan.semantic_search` — find relevant nodes (`purpose=explain`).
-- `tsp.node.execution_context` — pull intent + scope + relationships
+- `tsp_context_get` — resolve session-scoped plan.
+- `tsp_plan_semantic_search` — find relevant nodes (`purpose=explain`).
+- `tsp_node_execution_context` — pull intent + scope + relationships
   for the top 3-5 hits.
-- `tsp.edges.list` (optional) — get explicit relationship detail when
+- `tsp_edges_list` (optional) — get explicit relationship detail when
   the search hits aren't already linked by depends_on.
 
 ## Local filesystem responsibilities
@@ -41,24 +41,24 @@ None. Explain is purely plan-side; the harness reads no local files.
 ## Tool sequence
 
 ```text
-1. tsp.context.get
-2. tsp.plan.semantic_search(
+1. tsp_context_get
+2. tsp_plan_semantic_search(
      plan_id=<plan>, query=<topic>, purpose="explain",
      max_results=<5..10>,
    )
-   # plan_id may be omitted on every call below once tsp.context.set has
+   # plan_id may be omitted on every call below once tsp_context_set has
    # run — the session default fills it in; an explicit plan_id wins.
 3. For top 3-5 hits:
    # Semantic search returns hits whose `node` is a NodeRef (id/title);
    # pass its node_id as the flat `node_id` field.
-   tsp.node.execution_context(
+   tsp_node_execution_context(
        plan_id=<plan>,
        node_id=hit.node.node_id,
        include_ancestors=true,
        include_dependencies=true,
        include_dependents=true,
    )
-4. (Optional) tsp.edges.list(plan_id=<plan>) for cross-cutting edges.
+4. (Optional) tsp_edges_list(plan_id=<plan>) for cross-cutting edges.
 5. Render the explanation.
 ```
 
@@ -66,7 +66,7 @@ None. Explain is purely plan-side; the harness reads no local files.
 
 ```text
 🧭 Explain: <topic>
-   plan: <plan_id>@<branch>
+   plan: <plan_id>
 
 Short answer:
   <one-paragraph synthesis grounded in the top hits>
@@ -93,7 +93,7 @@ Open gaps / low-confidence areas:
 
 | Condition               | Skill behavior                                                                                 |
 | ----------------------- | ---------------------------------------------------------------------------------------------- |
-| No hits                 | Fall back to `tsp.nodes.search` with the same terms. Say no strong match found if still empty. |
+| No hits                 | Fall back to `tsp_nodes_search` with the same terms. Say no strong match found if still empty. |
 | Only coarse parent hits | Explain at the parent level and list its children to inspect next.                             |
 | Edges sparse            | Say relationship semantics are under-modeled and lean on tree context (parent + ancestors).    |
 

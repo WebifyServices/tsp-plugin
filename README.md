@@ -1,6 +1,6 @@
 # TSP plugin
 
-Tree-Structured Planning (TSP) is a canvas for planning software systems that coding agents can read from and write back to. This plugin installs in **Claude Code**, **Cursor**, and **Codex**. One package gives you eight skills plus a connection to the hosted TSP MCP server.
+Tree-Structured Planning (TSP) is a canvas for planning software systems that coding agents can read from and write back to. This plugin installs in **Claude Code**, **Cursor**, and **Codex**. One package gives you the TSP skills, a `connect` command and a connection to the hosted TSP MCP server.
 
 Install once, then your agent can author plans, implement off a node, record progress, reverse-map a diff to the nodes that govern it, and hand a session off when you stop. All three harnesses get the same skills against the same MCP server. Only the install step and how you invoke a skill change. The skill contracts are written to port to any MCP-aware harness (Cline and others re-implement against the same spec), so the three supported here are peers, not a primary plus ports.
 
@@ -11,32 +11,49 @@ The optional [TSP gateway](https://www.npmjs.com/package/@treestructuredplanning
 ## What you need first
 
 - One of [Claude Code](https://code.claude.com), [Cursor](https://cursor.com) (2.5 and later), or [Codex](https://developers.openai.com/codex), whichever you already use.
-- A TSP account at [treestructuredplanning.com](https://treestructuredplanning.com). Sign in through your browser. No API keys or tokens to paste. Cursor and Codex still need the `tsp` server pointed at (see the install sections below). Only the credential handoff is automatic.
+- A TSP account at [treestructuredplanning.com](https://treestructuredplanning.com). You sign in to TSP once, in your browser, and your harness's section below gives that step. No API keys or tokens to paste.
 
 ## Install
 
-Pick your harness. Each is a quick, one-time setup. These steps match the in-app [Connect your agent](https://treestructuredplanning.com/docs/drive-with-your-agent/connect-your-agent) guide.
+Pick your harness and read only its section: each one installs, signs in and checks the connection on its own. Installing the plugin doesn't sign you in. Until you sign in, your agent starts without TSP's tools and may not say so. These steps match the in-app [Connect your agent](https://treestructuredplanning.com/docs/drive-with-your-agent/connect-your-agent) guide.
 
 ### Claude Code
 
-Add the marketplace and install the plugin:
+**Install the plugin:**
 
 ```text
 /plugin marketplace add WebifyServices/tsp-plugin
 /plugin install tsp@tsp-plugins
 ```
 
-The first command registers this repo as a Claude Code plugin marketplace. The second installs the `tsp` plugin from it. These `/plugin` commands are Claude Code's (terminal or IDE). In Claude Desktop or claude.ai, add `https://treestructuredplanning.com/mcp/` as a custom connector instead. Claude Code may ask you to reload the session so the new skills and the MCP server register. On first use it discovers the authorization server from the MCP server's response and drives the OAuth 2.1 + PKCE browser sign-in for you. The result is stored and refreshed automatically. If the `tsp` server later shows as needing authentication, run `/mcp`, select `tsp`, and choose **Reauthenticate**.
+The first command registers this repo as a Claude Code plugin marketplace. The second installs the `tsp` plugin from it. Reload if prompted, so the skills and the MCP server register.
 
-Skills surface as `/tsp:<skill>` slash commands. Type `/tsp:` to autocomplete the eight skills and the `connect` command. A finished sign-in is not the whole check: ask Claude to list your TSP plans. A plan list, even an empty one, means the read path is live.
+**Sign in once.** Run `/mcp`, select the TSP server, and approve in the browser it opens (OAuth 2.1 + PKCE). From a shell, this does the same:
+
+```bash
+claude mcp login plugin:tsp:tsp
+```
+
+The token is stored and refreshed automatically.
+
+**Check it.**
+
+1. `claude mcp list` shows **Connected** next to the TSP server. **Needs authentication** means you haven't signed in yet.
+2. Type `/tsp:` to autocomplete the TSP skills and the `connect` command.
+3. Ask Claude to list your TSP plans. A plan list, even an empty one, means the read path is live.
+
+**If something goes wrong.**
+
+- **It needs authentication again.** Run `/mcp`, select the TSP server, and choose **Re-authenticate**.
+- **You use Claude Desktop or claude.ai.** The `/plugin` and `/mcp` commands are Claude Code's (terminal or IDE). In Claude Desktop or claude.ai, add `https://treestructuredplanning.com/mcp/` as a custom connector instead.
 
 ### Cursor
 
-Cursor 2.5 and later. Two steps: install the plugin, then connect.
+Cursor 2.5 and later.
 
-**Install the plugin.** Run `/add-plugin` and point it at `WebifyServices/tsp-plugin`, or install **TSP** from the [Cursor Marketplace](https://cursor.com/marketplace). This brings in the eight skills.
+**Install the plugin.** Run `/add-plugin` and point it at `WebifyServices/tsp-plugin`. This brings in the TSP skills.
 
-**Connect.** Add the `tsp` server to `.cursor/mcp.json` in your project, or `~/.cursor/mcp.json` for every project:
+**Add the server.** Add the `tsp` server to `.cursor/mcp.json` in your project, or `~/.cursor/mcp.json` for every project:
 
 ```json
 {
@@ -48,7 +65,22 @@ Cursor 2.5 and later. Two steps: install the plugin, then connect.
 }
 ```
 
-A bare `url` is enough. Cursor shows the server as needing sign-in, opens your browser to authorize it, then stores and refreshes the token on its own. Don't add an `Authorization` header or a client id. A static auth block suppresses the automatic sign-in. If Cursor sits on "needs login" without opening the browser, use the bridge form, which runs the sign-in itself:
+A bare `url` is enough. Don't add an `Authorization` header or a client id. A static auth block suppresses the automatic sign-in.
+
+**Sign in once.** Cursor shows the server as needing sign-in, opens your browser to authorize it, then stores and refreshes the token on its own. From a terminal, Cursor's CLI does the same:
+
+```bash
+agent mcp login tsp
+```
+
+**Check it.**
+
+1. The TSP skills appear in Cursor's `/` skill menu. Cursor also applies them automatically when they're relevant.
+2. Ask Cursor to list your TSP plans. A plan list, even an empty one, means the read path is live.
+
+**If something goes wrong.**
+
+- **Cursor sits on "needs login" without opening the browser.** Use the bridge form, which runs the sign-in itself:
 
 ```json
 {
@@ -61,22 +93,9 @@ A bare `url` is enough. Cursor shows the server as needing sign-in, opens your b
 }
 ```
 
-Skills surface through Cursor's `/` skill menu. Cursor applies them automatically when they're relevant. After sign-in, ask Cursor to list your TSP plans.
-
 ### Codex
 
-Three steps: install the plugin, add the server, sign in.
-
-**Install.** Open `/plugins`, add the `WebifyServices/tsp-plugin` marketplace, and install `tsp`. This brings in the eight skills.
-
-**Add the server** in `~/.codex/config.toml` (or `$CODEX_HOME/config.toml`):
-
-```toml
-[mcp_servers.tsp]
-url = "https://treestructuredplanning.com/mcp/"
-```
-
-Or: `codex mcp add tsp --url https://treestructuredplanning.com/mcp/`.
+**Install the plugin.** Open `/plugins`, add the `WebifyServices/tsp-plugin` marketplace, and install `tsp`. This brings in the TSP skills and the TSP server, so don't also add a `[mcp_servers.tsp]` block to `config.toml`. Codex keeps only one of the two, and a block whose address differs even by its final slash needs a sign-in of its own.
 
 **Sign in once:**
 
@@ -84,7 +103,19 @@ Or: `codex mcp add tsp --url https://treestructuredplanning.com/mcp/`.
 codex mcp login tsp
 ```
 
-That opens your browser to authorize and caches the result. Start Codex normally afterward. Adding the config alone leaves you unsigned in until you run `codex mcp login tsp` once. If your Codex build can't reach the URL directly, use the bridge form instead (keep only one `tsp` block):
+That opens your browser to authorize and caches the result. On a Mac, Codex keeps this sign-in in your Keychain, so every Codex setup on the computer that names `tsp` at the same address shares it.
+
+**Check it.**
+
+1. `codex mcp list` shows **Not logged in** next to `tsp` until you sign in.
+2. `/skills` lists the TSP skills.
+3. Ask Codex to list your TSP plans. A plan list, even an empty one, means the read path is live.
+
+**If something goes wrong.**
+
+- **`codex exec` runs without TSP's tools.** It doesn't say when you haven't signed in. Run the sign-in above.
+- **An older Codex build errors on `codex mcp login`.** Enable Codex's streamable-HTTP client by adding a `[features]` block with `rmcp_client = true`, then retry.
+- **You want TSP's tools without the plugin.** Add the server with `codex mcp add tsp --url https://treestructuredplanning.com/mcp/`, then sign in the same way. If your Codex build can't reach the URL directly, use the bridge form instead (keep only one `tsp` block):
 
 ```toml
 [mcp_servers.tsp]
@@ -92,24 +123,21 @@ command = "npx"
 args = ["-y", "mcp-remote", "https://treestructuredplanning.com/mcp/"]
 ```
 
-If `codex mcp login` errors on an older build, enable Codex's streamable-HTTP client by adding a `[features]` block with `rmcp_client = true`, then retry.
-
-Skills surface through `/skills`. After login, ask Codex to list your TSP plans.
-
 ## What you get
 
-Eight skills, each triggered by natural language or its slash form. However you connect, you get the same set wired to your plans. Only the way you reach them differs by harness (Claude Code's `/tsp:` commands, Cursor's `/` skill menu, Codex's `/skills`):
+These skills are each triggered by natural language or their slash form. However you connect, you get the same set wired to your plans. Only the way you reach them differs by harness (Claude Code's `/tsp:` commands, Cursor's `/` skill menu, Codex's `/skills`):
 
-| Skill             | Trigger                               | What it does                                                                                                                      |
-| ----------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `plan-author`     | `/tsp:plan-author`, "create a plan"   | Author or repair plans at generative-grade structure: tree-first decomposition, minimal justified edges, complete node contracts. |
-| `implement`       | `/tsp:implement <node-id>`            | Turn a node or subtree into shipped code; route atomic vs. non-atomic work; record results.                                       |
-| `next-actionable` | `/tsp:next-actionable`, "what's next" | Recommend the next node to pick up, ranked by critical path and dependency readiness.                                             |
-| `explain`         | `/tsp:explain <topic>`                | Explain a topic against the plan: which nodes govern it, how they relate, where the gaps are.                                     |
-| `align`           | `/tsp:align <node-id>`                | Detect drift between your code and a node's intent, scope, and acceptance criteria.                                               |
-| `impact`          | `/tsp:impact <path>`                  | Reverse-map a file or diff to the nodes that govern it, before a refactor or review.                                              |
-| `debug`           | `/tsp:debug <stack-trace>`            | From an error or failing test, identify which nodes likely govern the failing path.                                               |
-| `handoff`         | `/tsp:handoff`, "wrap up"             | Close a session: write status, touched files, blockers, and next steps back to the canvas.                                        |
+| Skill             | Trigger                                         | What it does                                                                                                                      |
+| ----------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `plan-author`     | `/tsp:plan-author`, "create a plan"             | Author or repair plans at generative-grade structure: tree-first decomposition, minimal justified edges, complete node contracts. |
+| `plan-repo`       | `/tsp:plan-repo [path]`, "plan this repository" | Write a plan of a repository you already have: a node for each part of the code, relationships where parts use each other.        |
+| `implement`       | `/tsp:implement <node-id>`                      | Turn a node or subtree into shipped code; route atomic vs. non-atomic work; record results.                                       |
+| `next-actionable` | `/tsp:next-actionable`, "what's next"           | Recommend the next node to pick up, ranked by critical path and dependency readiness.                                             |
+| `explain`         | `/tsp:explain <topic>`                          | Explain a topic against the plan: which nodes govern it, how they relate, where the gaps are.                                     |
+| `align`           | `/tsp:align <node-id>`                          | Detect drift between your code and a node's intent, scope, and acceptance criteria.                                               |
+| `impact`          | `/tsp:impact <path>`                            | Reverse-map a file or diff to the nodes that govern it, before a refactor or review.                                              |
+| `debug`           | `/tsp:debug <stack-trace>`                      | From an error or failing test, identify which nodes likely govern the failing path.                                               |
+| `handoff`         | `/tsp:handoff`, "wrap up"                       | Close a session: write status, touched files, blockers, and next steps back to the canvas.                                        |
 
 The MCP server has no filesystem access by design. Every skill that needs your code reads it locally inside your agent and ships only bounded snippets to the server, which returns structured results the harness renders.
 

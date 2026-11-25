@@ -18,14 +18,12 @@ For the canonical living source for each skill, see
 
 ## Common premises
 
+- Tools are named the way the server lists them, with underscores (for example `tsp_node_get`). A client may put a prefix before each name; match a tool by the end of its name.
 - The MCP server has NO filesystem access. Every skill that needs to
   read or write files does so locally inside the harness, then ships
   bounded payloads to MCP.
 - Agents work on the plan itself, and every skill below reads and writes
-  that one plan. While a generation session is running on a plan,
-  structure writes are refused with `PLAN_FORBIDDEN` and
-  `reason: generation_session_active`; act on its output through
-  `tsp.review.submit`.
+  that one plan.
 - Every worker follows [Worker session lifecycle](./application-sessions.md):
   register independently, pass the active handle in ordinary tool payloads,
   renew or resume its lease, and close at worker shutdown. Workers sharing
@@ -41,25 +39,25 @@ For the canonical living source for each skill, see
 ### `implement` (load-bearing)
 
 Capability: turn a TSP node or subtree into shipped code. Routes
-atomic vs. non-atomic work via `tsp.implement.prepare`; runs the
+atomic vs. non-atomic work via `tsp_implement_prepare`; runs the
 local edit / test loop; closes per-leaf and per-parent results back
 onto the caller's attempt.
 
-Required MCP tools: `tsp.context.get`, `tsp.implement.prepare`,
-`tsp.attempt.progress`, `tsp.workflow.record_result`.
+Required MCP tools: `tsp_context_get`, `tsp_implement_prepare`,
+`tsp_attempt_progress`, `tsp_workflow_record_result`.
 
 Blocking conditions: routing returns `blocked` (show blockers, exit),
 `needs_refinement` (show missing prerequisites, exit), or
 `subtree_too_large` (recommend narrower target).
 
-State writes: a Build seed carries a claim for `tsp.session.register`; a
+State writes: a Build seed carries a claim for `tsp_session_register`; a
 non-null `attempt` in the response identifies a bound session. Omit `node_ids`
-on every `tsp.attempt.progress`, including the first milestone. For a hand-run
+on every `tsp_attempt_progress`, including the first milestone. For a hand-run
 session registered with `attempt=null`, pass all nodes it will work on in
 `node_ids` on its first progress only; this opens its attempt and appends a
 milestone. Supplied node ids on a bound session must equal its entire scope
 as a set; a mismatch is refused with the bound nodes named.
-`tsp.attempt.progress` appends milestones and
+`tsp_attempt_progress` appends milestones and
 `record_result` records each node's report on the caller's attempt, retaining
 the `Node.status` projection. The session handle authorizes the write; no run
 id or exclusive leaf claim is needed. Close the application session at worker
@@ -70,11 +68,11 @@ shutdown after reporting and leaving the session note.
 Capability: explain a topic against the plan. Names the governing
 nodes, surfaces tree context, lists relationships, calls out gaps.
 
-Required MCP tools: `tsp.context.get`,
-`tsp.plan.semantic_search` (keyword-backed),
-`tsp.node.execution_context`, optionally `tsp.edges.list`.
+Required MCP tools: `tsp_context_get`,
+`tsp_plan_semantic_search` (keyword-backed),
+`tsp_node_execution_context`, optionally `tsp_edges_list`.
 
-Blocking conditions: no hits → fall back to `tsp.nodes.search`; only
+Blocking conditions: no hits → fall back to `tsp_nodes_search`; only
 coarse parent hits → explain at parent level.
 
 State writes: none.
@@ -85,8 +83,8 @@ Capability: recommend the next atomic leaves to work on. Ranked by
 downstream critical-path length, then by status (`ready` before
 `draft`), then by depth.
 
-Required MCP tools: `tsp.context.get`, `tsp.plan.next_actionable`,
-`tsp.node.execution_context` (for the primary recommendation).
+Required MCP tools: `tsp_context_get`, `tsp_plan_next_actionable`,
+`tsp_node_execution_context` (for the primary recommendation).
 
 Blocking conditions: no candidates → show `excluded_counts`; cycle
 detected → render involved nodes and recommend DAG repair.
@@ -101,11 +99,11 @@ reads the code locally, and judges each criterion itself (`satisfied`
 / `missing` / `unclear` / `contradicted`, bound by meaning; removed
 diff lines never count as `satisfied` evidence). It renders a
 structured drift report (verdict + findings + per-criterion checks).
-No metered operation is ever invoked: `tsp.alignment.assess` remains
+No metered operation is ever invoked: `tsp_alignment_assess` remains
 a free deterministic keyword check.
 
-Required MCP tools: `tsp.context.get`, `tsp.node.execution_context`.
-Optionally `tsp.workflow.record_result` to record acceptance evidence
+Required MCP tools: `tsp_context_get`, `tsp_node_execution_context`.
+Optionally `tsp_workflow_record_result` to record acceptance evidence
 on aligned verdicts.
 
 Blocking conditions: missing AC → alignment can only compare
@@ -121,8 +119,8 @@ harness-judged `acceptance_results`).
 Capability: reverse-map a file / diff / set of symbols to TSP nodes.
 Used before refactors and during review.
 
-Required MCP tools: `tsp.context.get`, `tsp.impact.map`. Optionally
-`tsp.node.execution_context` for the top candidate.
+Required MCP tools: `tsp_context_get`, `tsp_impact_map`. Optionally
+`tsp_node_execution_context` for the top candidate.
 
 Blocking conditions: no recorded code_refs anywhere → low-confidence
 warning; `NO_CANDIDATES` → ask user for the governing node.
@@ -134,8 +132,8 @@ State writes: none.
 Capability: from a stack trace / error / test failure, identify
 TSP nodes likely governing the failing path.
 
-Required MCP tools: `tsp.context.get`, `tsp.debug.map`. Optionally
-`tsp.node.execution_context`.
+Required MCP tools: `tsp_context_get`, `tsp_debug_map`. Optionally
+`tsp_node_execution_context`.
 
 Blocking conditions: unparseable stack frames → fall back to
 keyword search over `error_text` (the server does this automatically
@@ -150,8 +148,8 @@ acceptance criteria locally against the session's artifacts, then
 `record_result`; finally `session_note.create` covering the whole
 session. No metered operation is ever invoked.
 
-Required MCP tools: `tsp.context.get`, then
-`tsp.workflow.record_result` and `tsp.session_note.create`.
+Required MCP tools: `tsp_context_get`, then
+`tsp_workflow_record_result` and `tsp_session_note_create`.
 
 Blocking conditions: no reliable mapping between local state and a
 TSP node → skip per-node `record_result`, create session note only.
@@ -167,15 +165,15 @@ Status-setting policy:
 
 Tool sequence (detailed):
 
-1. `tsp.context.get` — resolve plan/branch; ask the user once if unset.
+1. `tsp_context_get` — resolve plan; ask the user once if unset.
 2. Compose the local-state summary (harness-side): touched files,
    tests run + results, current diff, active node ids (in this attempt's scope
    with no terminal result yet), unresolved blockers and
    next steps.
 3. For each active node:
     1. Judge each acceptance criterion locally against the session's artifacts (diff, tests run, files read): `satisfied` / `missing` / `unclear` / `contradicted`, bound by meaning rather than vocabulary; removed diff lines never count as `satisfied` evidence. Compose `acceptance_results` entries directly as `{criterion_id, status, note}` — positional `criterion_id` (`ac-1`, `ac-2`, …), a short evidence string in `note`, never re-typed criterion text (the server resolves the id to the canonical wording).
-    2. `tsp.workflow.record_result(node_id, session_handle, idempotency_key, result_status, summary, touched_files, acceptance_results, tests_run, blockers, next_steps)` — mint `idempotency_key` once per result and resend it on retry (a recorded key replays, never records twice; `result_in_flight` means the first call is still landing, so retry the same call shortly); the response's `new_status` is what the status rules actually committed; `transition_note` states any implicit transition and `incomplete_dependencies` names blocking node ids. The session handle routes this result to the caller's attempt; no run id or prior `record_start` is needed.
-4. `tsp.session_note.create(plan_id?, agent_session_id, node_ids, summary, next_steps, blockers, local_context)` — one note covering the whole session and every active node id. The note says what was done and the decisions taken with the person (`summary`), and what is next (`next_steps`, `blockers`). `implement` closes with this same note, once, after its last `record_result`.
+    2. `tsp_workflow_record_result(node_id, session_handle, idempotency_key, result_status, summary, touched_files, acceptance_results, tests_run, blockers, next_steps)` — mint `idempotency_key` once per result and resend it on retry (a recorded key replays, never records twice; `result_in_flight` means the first call is still landing, so retry the same call shortly); the response's `new_status` is what the status rules actually committed; `transition_note` states any implicit transition and `incomplete_dependencies` names blocking node ids. The session handle routes this result to the caller's attempt; no run id or prior `record_start` is needed.
+4. `tsp_session_note_create(plan_id?, agent_session_id, node_ids, summary, next_steps, blockers, local_context)` — one note covering the whole session and every active node id. The note says what was done and the decisions taken with the person (`summary`), and what is next (`next_steps`, `blockers`). `implement` closes with this same note, once, after its last `record_result`.
 5. Show the final handoff summary plus the recommended next command.
 
 Extended blocking conditions:
@@ -208,15 +206,15 @@ and a minimal edge set — zero edges is acceptable, far fewer edges
 than nodes, one edge per node pair, no parent/ancestor edges, no
 transitive depends_on echoes, no sequencing-as-dependency, every
 kept edge noted with what flows. Authors the tree first
-(`tsp.nodes.create` batches without edges), then one deliberate edge
+(`tsp_nodes_create` batches without edges), then one deliberate edge
 pass over the finished tree, then a boundary pass over every node's
 out_of_scope, a coverage pass back over the source, and self-review
-with `tsp.tree.summary` + `tsp.edges.list`.
+with `tsp_tree_summary` + `tsp_edges_list`.
 
-Required MCP tools: `tsp.context.get/set`, `tsp.plan.create`,
-`tsp.nodes.create`, `tsp.node.update`, `tsp.edge.create`,
-`tsp.edge.delete`, `tsp.edges.list`, `tsp.tree.summary`. Optionally
-`tsp.node.generate` (metered) to delegate a decomposition or
+Required MCP tools: `tsp_context_get/set`, `tsp_plan_create`,
+`tsp_nodes_create`, `tsp_node_update`, `tsp_edge_create`,
+`tsp_edge_delete`, `tsp_edges_list`, `tsp_tree_summary`. Optionally
+`tsp_node_generate` (metered) to delegate a decomposition or
 refinement, reviewed by the same rules.
 
 Blocking conditions: source material too thin → ask, never invent
@@ -228,34 +226,62 @@ State writes: plan, node, and edge structure only; no workflow
 writes — delivery status stays `draft` until implementation sessions
 claim nodes.
 
+### `plan-repo`
+
+Capability: author a plan of an existing repository from its code.
+The root is the repository, the first level is the units its
+manifests declare, and each node below is one cohesive part of the
+code. Each node's contract describes the code as it is today, and its
+in_scope entries name the paths they cover. Relationships come from
+real imports and interface implementations, under the same edge rules
+as `plan-author`. Shows the person the top two levels before writing.
+Optionally plans one path under the node that already owns it.
+
+Inputs: an optional path inside the repository.
+
+Required MCP tools: `tsp.context.get/set`, `tsp.plan.create`,
+`tsp.nodes.create`, `tsp.node.update`, `tsp.edge.create`,
+`tsp.edge.delete`, `tsp.edges.list`, `tsp.tree.summary`.
+
+Local filesystem responsibilities: reads the repository's manifests,
+READMEs, source and import statements locally. Sends only plan
+fields to MCP.
+
+Blocking conditions: no readable source → say so and create nothing;
+two decompositions tie and the layout is mixed → ask before writing;
+plan cap or tier errors → surface them and narrow the path.
+
+State writes: plan, node, and edge structure only; no workflow or
+attempt writes, so no node is marked complete.
+
 ## Tool / scope / tier matrix
 
 | Tool                                    | Tier | Scopes                             |
 | --------------------------------------- | ---- | ---------------------------------- |
-| `tsp.context.set/get/clear`             | Free | `plans:read`                       |
-| `tsp.plans.list`                        | Free | `plans:read`                       |
-| `tsp.prd.get`/`tsp.prd.sections`        | Free | `plans:read`                       |
-| `tsp.node.get/parent/children/siblings` | Free | `plans:read`                       |
-| `tsp.edges.list`                        | Free | `plans:read`                       |
-| `tsp.nodes.search`                      | Free | `plans:read`                       |
-| `tsp.tree.summary`                      | Free | `plans:read`                       |
-| `tsp.node.execution_context`            | Pro  | `plans:read`                       |
-| `tsp.subtree.get`                       | Pro  | `plans:read`                       |
-| `tsp.node.blockers`                     | Pro  | `plans:read`                       |
-| `tsp.plan.next_actionable`              | Pro  | `plans:read`                       |
-| `tsp.plan.semantic_search`              | Pro  | `plans:read` + `semantic:read`     |
-| `tsp.implement.prepare`                 | Pro  | `plans:read` + `implement:prepare` |
-| `tsp.workflow.record_start`             | Pro  | `plans:read` + `workflow:write`    |
-| `tsp.workflow.record_result`            | Pro  | `plans:read` + `workflow:write`    |
-| `tsp.session_note.create`               | Pro  | `plans:read` + `workflow:write`    |
-| `tsp.alignment.assess`                  | Pro  | `plans:read` + `alignment:run`     |
-| `tsp.impact.map`                        | Pro  | `plans:read` + `impact:read`       |
-| `tsp.debug.map`                         | Pro  | `plans:read` + `impact:read`       |
-| `tsp.plan.create` / `tsp.plan.update`   | Pro  | `plans:read` + `plans:write`       |
-| `tsp.node.create/update/delete/move`    | Pro  | `plans:read` + `structure:write`   |
-| `tsp.nodes.create`                      | Pro  | `plans:read` + `structure:write`   |
-| `tsp.edge.create` / `tsp.edge.delete`   | Pro  | `plans:read` + `structure:write`   |
-| `tsp.node.generate` (metered)           | Pro  | `plans:read` + `generation:run`    |
+| `tsp_context_set/get/clear`             | Free | `plans:read`                       |
+| `tsp_plans_list`                        | Free | `plans:read`                       |
+| `tsp_prd_get`/`tsp_prd_sections`        | Free | `plans:read`                       |
+| `tsp_node_get/parent/children/siblings` | Free | `plans:read`                       |
+| `tsp_edges_list`                        | Free | `plans:read`                       |
+| `tsp_nodes_search`                      | Free | `plans:read`                       |
+| `tsp_tree_summary`                      | Free | `plans:read`                       |
+| `tsp_node_execution_context`            | Pro  | `plans:read`                       |
+| `tsp_subtree_get`                       | Pro  | `plans:read`                       |
+| `tsp_node_blockers`                     | Pro  | `plans:read`                       |
+| `tsp_plan_next_actionable`              | Pro  | `plans:read`                       |
+| `tsp_plan_semantic_search`              | Pro  | `plans:read` + `semantic:read`     |
+| `tsp_implement_prepare`                 | Pro  | `plans:read` + `implement:prepare` |
+| `tsp_workflow_record_start`             | Pro  | `plans:read` + `workflow:write`    |
+| `tsp_workflow_record_result`            | Pro  | `plans:read` + `workflow:write`    |
+| `tsp_session_note_create`               | Pro  | `plans:read` + `workflow:write`    |
+| `tsp_alignment_assess`                  | Pro  | `plans:read` + `alignment:run`     |
+| `tsp_impact_map`                        | Pro  | `plans:read` + `impact:read`       |
+| `tsp_debug_map`                         | Pro  | `plans:read` + `impact:read`       |
+| `tsp_plan_create` / `tsp_plan_update`   | Pro  | `plans:read` + `plans:write`       |
+| `tsp_node_create/update/delete/move`    | Pro  | `plans:read` + `structure:write`   |
+| `tsp_nodes_create`                      | Pro  | `plans:read` + `structure:write`   |
+| `tsp_edge_create` / `tsp_edge_delete`   | Pro  | `plans:read` + `structure:write`   |
+| `tsp_node_generate` (metered)           | Pro  | `plans:read` + `generation:run`    |
 
 ## Porting checklist
 

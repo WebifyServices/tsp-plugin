@@ -1,19 +1,118 @@
 {
 	"name": "tsp",
-	"version": "0.11.0",
-	"description": "Tree-Structured Planning integration for coding agents. Read TSP plans, route implementation work, record progress back to the canvas, and reverse-map code to governing nodes.",
+	"version": "0.12.0",
+	"description": "Tree-Structured Planning integration for coding agents. Read TSP plans, route implementation work, record progress back to the canvas, and reverse-map code to governing nodes. Learn more at https://treestructuredplanning.com.",
 	"author": {
 		"name": "Tree-Structured Planning",
 		"email": "support@treestructuredplanning.com"
 	},
 	"homepage": "https://treestructuredplanning.com",
 	"repository": "https://github.com/WebifyServices/tsp-plugin",
+	"license": "MIT",
+	"keywords": [
+		"planning",
+		"architecture",
+		"software-planning",
+		"canvas",
+		"mcp",
+		"agents",
+		"implementation",
+		"requirements"
+	],
 	"skills": "./skills/",
 	"mcpServers": "./.mcp.json",
 	"interface": {
 		"displayName": "Tree-Structured Planning",
-		"category": "Coding",
+		"shortDescription": "Plan and ship with your agent",
+		"longDescription": "Tree-Structured Planning (TSP) is a canvas where a software plan lives as a tree of nodes, each with an intent and a scope. This plugin connects your coding agent to your TSP plans, so the plan stays useful while the code gets written.\n\nWith it your agent can:\n- Author a plan from a goal or a spec.\n- Implement a node or a subtree, then record the result back on the canvas.\n- Recommend what to work on next.\n- Explain what the plan says about a topic.\n- Check whether code still matches a node's intent and scope.\n- Find which nodes govern a file or a diff before you refactor or review.\n- Trace a failing test or stack trace to the nodes that own that path.\n- Close a session by writing status, touched files and next steps back to the plan.\n\nYou need a TSP account at treestructuredplanning.com. After installing, run codex mcp login tsp and finish signing in in your browser. No API key needed. Your agent reads your code on your computer and sends TSP only the short snippets a skill needs.",
+		"developerName": "Tree-Structured Planning",
+		"category": "Developer Tools",
+		"capabilities": [
+			"Read",
+			"Write"
+		],
+		"websiteURL": "https://treestructuredplanning.com",
+		"supportURL": "https://github.com/WebifyServices/tsp-plugin/issues",
+		"privacyPolicyURL": "https://treestructuredplanning.com/privacy",
+		"termsOfServiceURL": "https://treestructuredplanning.com/terms",
+		"defaultPrompt": [
+			"Author a TSP plan for this project.",
+			"What should I work on next in my TSP plan?",
+			"Which TSP nodes govern the files I just changed?"
+		],
 		"logo": "./assets/tsp-icon-512.png",
 		"composerIcon": "./assets/tsp-icon-bold.svg"
+	},
+	"extensions": {
+		"com.openai": {
+			"review": {
+				"test_cases": {
+					"positive": [
+						{
+							"description": "Lists the signed-in account's plans",
+							"prompt": "List my TSP plans.",
+							"tools_triggered": [
+								"tsp_plans_list"
+							],
+							"expected_behavior": "The assistant reads the account's plans and lists their names."
+						},
+						{
+							"description": "Summarizes the structure of one plan",
+							"prompt": "Give me a summary of the tree for my most recent plan.",
+							"tools_triggered": [
+								"tsp_plans_list",
+								"tsp_tree_summary"
+							],
+							"expected_behavior": "The assistant finds the plan and describes its top-level structure."
+						},
+						{
+							"description": "Recommends what to work on next",
+							"prompt": "What should I work on next in my TSP plan?",
+							"tools_triggered": [
+								"tsp_plans_list",
+								"tsp_plan_next_actionable"
+							],
+							"expected_behavior": "The assistant names one node to pick up next and says why."
+						},
+						{
+							"description": "Finds nodes by topic",
+							"prompt": "Which nodes in my most recent plan mention sign-in?",
+							"tools_triggered": [
+								"tsp_plans_list",
+								"tsp_nodes_search"
+							],
+							"expected_behavior": "The assistant lists the matching nodes by name."
+						},
+						{
+							"description": "Explains what a plan says about a topic",
+							"prompt": "Explain what my TSP plan says about onboarding.",
+							"tools_triggered": [
+								"tsp_plans_list",
+								"tsp_plan_semantic_search",
+								"tsp_node_get"
+							],
+							"expected_behavior": "The assistant gives a short answer and names the nodes that govern the topic."
+						}
+					],
+					"negative": [
+						{
+							"description": "TSP tools read and write planning documents, and a weather forecast is not one, so the plugin should not act",
+							"prompt": "What is the weather in Boston tomorrow?",
+							"expected_behavior": "The assistant answers or says it has no forecast source, and calls no TSP tool."
+						},
+						{
+							"description": "A poem is a creative request with no plan, node or code behind it, so the plugin should not act",
+							"prompt": "Write a haiku about trees.",
+							"expected_behavior": "The assistant writes the haiku and calls no TSP tool."
+						},
+						{
+							"description": "Pull requests live in the user's code host, not in a TSP plan, so the plugin should not act",
+							"prompt": "Summarize my open GitHub pull requests.",
+							"expected_behavior": "The assistant uses its GitHub access, or asks for it, and calls no TSP tool."
+						}
+					]
+				}
+			}
+		}
 	}
 }

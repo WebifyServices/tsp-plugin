@@ -8,7 +8,7 @@ description: Reverse-map a file or diff to the TSP nodes that govern it. Trigger
 First follow [Worker lifecycle](../../docs/application-sessions.md).
 
 Reverse-map code artifacts (files, diffs, symbols) to TSP nodes via
-`tsp.impact.map`. Useful before refactors, during review, and before
+`tsp_impact_map`. Useful before refactors, during review, and before
 merging work that might cross semantic boundaries.
 
 Ranking draws on three sources, strongest first: paths previously
@@ -29,13 +29,13 @@ with the in-scope items that apply and the risks of touching them.
 - `diff`: a unified diff (optional; bounded at 40k chars).
 - `symbols`: explicit symbols / function names (optional).
 - `mode`: `pre_refactor` / `pre_review` / `general` (default).
-- `plan_id` and `branch_name`: optional; default to session context.
+- `plan_id`: optional; defaults to session context.
 
 ## Required MCP tools
 
-- `tsp.context.get` — resolve session context.
-- `tsp.impact.map` — the reverse mapping.
-- `tsp.node.execution_context` (optional) — fetch full intent and
+- `tsp_context_get` — resolve session context.
+- `tsp_impact_map` — the reverse mapping.
+- `tsp_node_execution_context` (optional) — fetch full intent and
   acceptance criteria for the top candidate so the harness can render
   them inline.
 
@@ -53,16 +53,16 @@ The harness:
 ## Tool sequence
 
 ```text
-1. tsp.context.get
-2. (Optional) Local: read the file or capture the diff; extract symbols.
-3. tsp.impact.map(
-     plan_id=<plan>,  # optional once tsp.context.set has run
+1. tsp_context_get
+2. (Optional) Local: read the file or capture the diff; extract symbols. Never include credentials, tokens, API keys or .env contents in an excerpt or diff you send; skip those lines.
+3. tsp_impact_map(
+     plan_id=<plan>,  # optional once tsp_context_set has run
      artifacts=[CodeArtifactSpec(path=..., content_excerpt=..., symbols=...)],
      mode=<pre_refactor|pre_review|general>,
      max_candidates=10,
      include_dependency_neighbors=true,
    )
-4. (Optional, top candidate): tsp.node.execution_context(node_id=<top_node_id>)
+4. (Optional, top candidate): tsp_node_execution_context(node_id=<top_node_id>)
 5. Render the candidate list with rationale, governing scope, and risks.
 ```
 
@@ -70,7 +70,7 @@ The harness:
 
 ```text
 🎯 Impact map for <path or "current diff">
-   plan: <plan_id>@<branch>
+   plan: <plan_id>
 
 Candidates (top <N>):
   1. <node_id> — <title>  [<relation>, confidence <0.0-1.0>]
@@ -88,7 +88,7 @@ Suggested checks:
 ```
 
 For empty results, the skill surfaces the warning verbatim and
-recommends a `tsp.nodes.search` query built from the artifact's path
+recommends a `tsp_nodes_search` query built from the artifact's path
 and symbol terms.
 
 ## Blocking conditions

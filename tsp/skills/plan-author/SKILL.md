@@ -1,6 +1,6 @@
 ---
 name: plan-author
-description: Author high-quality TSP plans over MCP (tsp.plan.create, tsp.nodes.create, tsp.edge.create, tsp.node.update). Encodes the generative system's structure discipline - the tree carries the architecture, the plan stays as lean as the requirements permit, edges are rare and justified, every node ships a complete contract. Triggers on "create a plan", "author a plan in TSP", "add nodes", "model this in TSP", any bulk node/edge authoring, or "/tsp:plan-author".
+description: Author high-quality TSP plans over MCP (tsp_plan_create, tsp_nodes_create, tsp_edge_create, tsp_node_update). Encodes the generative system's structure discipline - the tree carries the architecture, the plan stays as lean as the requirements permit, edges are rare and justified, every node ships a complete contract. Triggers on "create a plan", "author a plan in TSP", "add nodes", "model this in TSP", any bulk node/edge authoring, or "/tsp:plan-author".
 ---
 
 # tsp:plan-author
@@ -17,9 +17,9 @@ past the requirements; this skill prevents both.
 
 ## Required MCP tools
 
-`tsp.context.get/set`, `tsp.plan.create`, `tsp.nodes.create`,
-`tsp.node.update`, `tsp.edge.create/delete`, `tsp.edges.list`,
-`tsp.tree.summary`. Optional: `tsp.node.generate` (metered).
+`tsp_context_get/set`, `tsp_plan_create`, `tsp_nodes_create`,
+`tsp_node_update`, `tsp_edge_create/delete`, `tsp_edges_list`,
+`tsp_tree_summary`. Optional: `tsp_node_generate` (metered).
 
 ## Right-sized leanness
 
@@ -117,20 +117,20 @@ good outcome. Gate every candidate:
 ## Tool sequence
 
 ```text
-1. tsp.context.get; then tsp.plan.create (always with the inline
+1. tsp_context_get; then tsp_plan_create (always with the inline
    root), or locate the parent node for a subtree.
-2. TREE first: tsp.nodes.create in batches per subtree (children
+2. TREE first: tsp_nodes_create in batches per subtree (children
    reference batch node_ids), full contracts, NO edges.
 3. Edge pass, once, over the finished tree: list candidates, apply
    the gates, create only survivors — each with a note.
 4. Boundary pass: read every node's out_of_scope. Empty, not an
    exact owner title, "(owned by X)" commentary, or a root
-   disclaimer in a child — each is a bug; fix via tsp.node.update.
+   disclaimer in a child — each is a bug; fix via tsp_node_update.
 5. Coverage pass: re-read the source; every stated surface needs an
    owning node — auth/accounts, admin UI, data schema are classic
    drops. Add what is missing.
 6. Self-review (below); delete edges that fail a gate.
-7. Large or unfamiliar decomposition? Prefer tsp.node.generate;
+7. Large or unfamiliar decomposition? Prefer tsp_node_generate;
    review its proposal by these same rules.
 ```
 
@@ -138,11 +138,11 @@ good outcome. Gate every candidate:
 
 - Leanness ceiling: walk the plan — every node traces to something
   the source states.
-- `tsp.tree.summary`: edge_count well below total_nodes; depth
+- `tsp_tree_summary`: edge_count well below total_nodes; depth
   reflects real structure (the canonical failure: a flat root
   fanning into everything); each decomposition is one honest
   specificity step — no catalog floods, no lone rephrasers.
-- `tsp.edges.list`: every edge cross-branch, noted, non-transitive,
+- `tsp_edges_list`: every edge cross-branch, noted, non-transitive,
   one per pair, none touching an ancestor of its other end.
 - Every node's contract fields: non-empty and honest.
 

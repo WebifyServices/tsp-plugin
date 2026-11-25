@@ -19,8 +19,8 @@ these writes; no leaf claim or active-run lease needs to be released.
 Follow the worker lifecycle to close the application session at shutdown.
 
 This skill is pure orchestration over MCP tools. It owns no backend
-files; `tsp.workflow.record_result` writes the attempt report and retained
-node-status projection, and `tsp.session_note.create` records handoff context.
+files; `tsp_workflow_record_result` writes the attempt report and retained
+node-status projection, and `tsp_session_note_create` records handoff context.
 
 ## Capability
 
@@ -39,7 +39,7 @@ Collected from session state (the skill asks once when ambiguous):
 
 - `session_handle`: the current worker's private credential, kept in runtime state.
 - `agent_session_id`: the immutable public session id returned by registration.
-- `plan_id` and `branch_name`: from `tsp.context.get`.
+- `plan_id`: from `tsp_context_get`.
 - Active node ids: nodes worked on within the attempt's scope with no terminal
   result yet. If the credential is refused or superseded, stop and tell the
   person; Continue issues the next agent a new epoch on this attempt.
@@ -48,11 +48,11 @@ Collected from session state (the skill asks once when ambiguous):
 
 ## Required MCP tools
 
-- `tsp.context.get` — resolve session-scoped plan and branch.
-- `tsp.node.execution_context` (optional) — re-fetch a node's
+- `tsp_context_get` — resolve session-scoped plan.
+- `tsp_node_execution_context` (optional) — re-fetch a node's
   acceptance criteria when they aren't already in session context.
-- `tsp.workflow.record_result` — terminal status per active node.
-- `tsp.session_note.create` — one free-text record covering the
+- `tsp_workflow_record_result` — terminal status per active node.
+- `tsp_session_note_create` — one free-text record covering the
   whole session and the affected node ids.
 
 ## Local filesystem responsibilities
@@ -69,11 +69,11 @@ The MCP server has no filesystem access. The harness:
 
 ## Tool sequence
 
-1. `tsp.context.get` (ask once if plan/branch unset).
+1. `tsp_context_get` (ask once if the plan is unset).
 2. Compose the local-state summary: touched files, tests run, diff
    state, active node ids, unresolved blockers and next steps.
 3. For each active node: judge its acceptance criteria locally, then
-   `tsp.workflow.record_result` with the status from the policy below,
+   `tsp_workflow_record_result` with the status from the policy below,
    `acceptance_results` composed directly as
    `{criterion_id, status, note}` entries (positional ids `ac-1`,
    `ac-2`, …; never re-type criterion text; a short evidence string
@@ -85,7 +85,7 @@ The MCP server has no filesystem access. The harness:
    landing, so wait a moment and retry the same call again.
    The session handle routes the result to your attempt; do not pass
    a run id or start a second reporting path.
-4. `tsp.session_note.create` once, covering all active node ids.
+4. `tsp_session_note_create` once, covering all active node ids.
 5. Show the final summary plus the recommended next command.
 
 The full step-by-step and the extended blocking-condition table live
@@ -110,7 +110,7 @@ it.
 
 ```text
 🤝 Handoff complete
-   plan: <plan_id>@<branch>
+   plan: <plan_id>
    session: <agent_session_id>
    nodes recorded:
      ✅ <node_id> — complete
@@ -130,10 +130,8 @@ When errors occurred during the loop, append:
 ## State writes
 
 This skill only writes each active node's `status` and workflow
-state through `tsp.workflow.record_result`, and one session note
-through `tsp.session_note.create`. The canvas reflects the session's
+state through `tsp_workflow_record_result`, and one session note
+through `tsp_session_note_create`. The canvas reflects the session's
 results as soon as they land.
 
-The skill never creates, deletes, or restructures nodes; it never
-writes to generation branches (`branch_name="main"` is the default
-and the only branch workflow writes target).
+The skill never creates, deletes, or restructures nodes.

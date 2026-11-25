@@ -21,7 +21,7 @@ recommendation plus alternates.
 
 ## Inputs
 
-- `plan_id` and `branch_name`: optional; default to session context.
+- `plan_id`: optional; defaults to session context.
 - `workstream`: optional filter for backend / frontend / etc.
 - `include_in_progress`: include nodes currently `in_progress` in
   the candidate set (default false).
@@ -30,9 +30,9 @@ recommendation plus alternates.
 
 ## Required MCP tools
 
-- `tsp.context.get` — resolve session-scoped plan and branch.
-- `tsp.plan.next_actionable` — the recommendation tool.
-- `tsp.node.execution_context` — enrich the primary recommendation
+- `tsp_context_get` — resolve session-scoped plan.
+- `tsp_plan_next_actionable` — the recommendation tool.
+- `tsp_node_execution_context` — enrich the primary recommendation
   with intent, blockers, and code refs so the user can decide
   immediately.
 
@@ -43,18 +43,18 @@ None. Recommendations are computed entirely from plan state.
 ## Tool sequence
 
 ```text
-1. tsp.context.get
-2. tsp.plan.next_actionable(
+1. tsp_context_get
+2. tsp_plan_next_actionable(
      plan_id=<plan>, workstream=<filter or null>,
      include_in_progress=false, include_non_atomic=false,
      max_results=<N>,
    )
-   # plan_id may be omitted once tsp.context.set has run — the session
+   # plan_id may be omitted once tsp_context_set has run — the session
    # default fills it in; an explicit plan_id wins.
 3. For the primary recommendation:
    # `primary.node` is a NodeRef; pass its node_id as the flat
    # `node_id` field.
-   tsp.node.execution_context(
+   tsp_node_execution_context(
        plan_id=<plan>,
        node_id=primary.node.node_id,
        include_dependencies=true,
@@ -67,7 +67,7 @@ None. Recommendations are computed entirely from plan state.
 
 ```text
 📋 Next actionable
-   plan: <plan_id>@<branch>
+   plan: <plan_id>
 
 ▶ Primary:
   <node_id> — <title>
@@ -96,7 +96,7 @@ Excluded counts:
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | No candidates            | Show excluded_counts so the user can see why; recommend relaxing filters or refining the plan.                                                                                                                                                                                                    |
 | Dependency cycle warning | Server raises `DEPENDENCY_CYCLE_DETECTED`; render involved node ids and recommend repairing the DAG.                                                                                                                                                                                              |
-| Sparse statuses          | `tsp.plan.next_actionable` ranks `ready` candidates ahead of `draft` and may return `draft` entries in the tail when `max_results` exceeds the number of `ready` leaves. Surface the lower-confidence `draft` rows as alternates (not the primary) when the top of the list is a draft candidate. |
+| Sparse statuses          | `tsp_plan_next_actionable` ranks `ready` candidates ahead of `draft` and may return `draft` entries in the tail when `max_results` exceeds the number of `ready` leaves. Surface the lower-confidence `draft` rows as alternates (not the primary) when the top of the list is a draft candidate. |
 
 ## State writes
 

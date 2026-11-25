@@ -1,6 +1,6 @@
 ---
 name: implement
-description: Turn a TSP node into shipped code using tsp.implement.prepare for routing and the workflow-write tools for loop closure. Triggers on "implement <node-id>", "/tsp:implement", or any request to ship the work governed by a TSP node.
+description: Turn a TSP node into shipped code using tsp_implement_prepare for routing and the workflow-write tools for loop closure. Triggers on "implement <node-id>", "/tsp:implement", or any request to ship the work governed by a TSP node.
 ---
 
 # tsp:implement
@@ -20,25 +20,25 @@ status writes showing on the canvas live.
 ## Inputs
 
 - `node_id`: the TSP node id to implement (required).
-- `plan_id` and `branch_name`: optional; default to the session's
-  prior `tsp.context.set` value, then to `branch_name="main"`.
+- `plan_id`: optional; defaults to the session's
+  prior `tsp_context_set` value.
 - `agent_session_id`: a stable id for this implementation session (the
   harness generates one if not supplied; reuse it across the loop).
 
 ## Required MCP tools
 
-- `tsp.context.get` — resolve session-scoped plan and branch defaults.
-- `tsp.implement.prepare` — build the brief and routing decision.
-- `tsp.attempt.progress` — record a short milestone with a fresh idempotency key.
-- `tsp.workflow.record_result` — record each node's result on the caller's attempt,
+- `tsp_context_get` — resolve session-scoped plan default.
+- `tsp_implement_prepare` — build the brief and routing decision.
+- `tsp_attempt_progress` — record a short milestone with a fresh idempotency key.
+- `tsp_workflow_record_result` — record each node's result on the caller's attempt,
   including its summary, touched files, checks, tests and code pointer. This also
   retains the node-status projection until the status-write cutover.
-- `tsp.session.renew` — renew every ~2 minutes while coding or testing
+- `tsp_session_renew` — renew every ~2 minutes while coding or testing
   ([why](../../docs/application-sessions.md#staying-visible-while-you-work)).
-- `tsp.session_note.create` — exactly one per implementation session,
+- `tsp_session_note_create` — exactly one per implementation session,
   after the last `record_result`, written as `handoff` writes it.
 
-For non-atomic nodes the skill calls `tsp.implement.prepare` again
+For non-atomic nodes the skill calls `tsp_implement_prepare` again
 per leaf so each leaf gets its own brief and routing pass.
 
 ## Local filesystem responsibilities
@@ -54,12 +54,12 @@ The MCP server has no filesystem access. The harness:
 ## Tool sequence
 
 ```text
-1. tsp.context.get
+1. tsp_context_get
    - If no plan_id passed and no context set, ask the user once and
-     call tsp.context.set so subsequent reads use it.
-2. tsp.implement.prepare(node_id=<node>, include_subtree=true,
+     call tsp_context_set so subsequent reads use it.
+2. tsp_implement_prepare(node_id=<node>, include_subtree=true,
                          require_acceptance_criteria=true)
-   # plan_id is optional everywhere once tsp.context.set has run.
+   # plan_id is optional everywhere once tsp_context_set has run.
 3. Branch on routing:
    - blocked            -> show blockers and stop.
    - needs_refinement   -> show missing prerequisites and stop.
@@ -71,12 +71,12 @@ The MCP server has no filesystem access. The harness:
 
 ```text
 1. Keep the prepare brief in session context; the TSP node is the plan artifact.
-   Report milestones with tsp.attempt.progress(milestone=<short line>,
+   Report milestones with tsp_attempt_progress(milestone=<short line>,
                                                idempotency_key=<fresh key>).
    Pass node_ids only as State writes says.
 2. Read referenced files; make edits using harness tools.
 3. Run tests covering the change.
-4. tsp.workflow.record_result(
+4. tsp_workflow_record_result(
      node_id=<node>, agent_session_id=<session>,
      result_status="complete" if AC satisfied and tests pass else
                    "in_progress" or "blocked",
@@ -92,7 +92,7 @@ The MCP server has no filesystem access. The harness:
    # re-type criterion text. new_status is the committed status;
    # transition_note explains implicit transitions. Retroactive
    # recording needs only this one call.
-5. tsp.session_note.create(agent_session_id=<session>, node_ids=<every
+5. tsp_session_note_create(agent_session_id=<session>, node_ids=<every
    node recorded>, ...) once, after record_result: the note `handoff`
    step 4 defines (../handoff/SKILL.md, ../../docs/skill-behavior-spec.md):
    what was done, decisions taken with the person, what is next.
@@ -102,24 +102,24 @@ The MCP server has no filesystem access. The harness:
 
 ```text
 For each leaf in routing.leaf_queue (in order):
-  1. tsp.implement.prepare(node_id=<leaf>, include_subtree=false,
+  1. tsp_implement_prepare(node_id=<leaf>, include_subtree=false,
                            require_acceptance_criteria=true).
   2. If leaf routes to blocked / needs_refinement, stop and surface
      why; do NOT skip ahead.
-  3. Report each milestone with tsp.attempt.progress(
+  3. Report each milestone with tsp_attempt_progress(
        milestone=<short line>, idempotency_key=<fresh key>).
      Pass node_ids only as State writes says.
   4. Implement the leaf locally; run leaf-relevant tests.
-  5. tsp.workflow.record_result(node_id=<leaf>, agent_session_id=<session>, ...).
+  5. tsp_workflow_record_result(node_id=<leaf>, agent_session_id=<session>, ...).
 
-After every leaf completes, re-run tsp.implement.prepare on the
+After every leaf completes, re-run tsp_implement_prepare on the
 parent node. Report on the parent only when it is inside your attempt scope;
 otherwise leave the parent rollup to the plan and summarize the leaf results.
 For an in-scope parent, decide:
   - If parent acceptance criteria are now satisfied:
-      tsp.workflow.record_result(node_id=<parent>, result_status="complete", ...).
+      tsp_workflow_record_result(node_id=<parent>, result_status="complete", ...).
   - Otherwise:
-      tsp.workflow.record_result(node_id=<parent>, result_status="in_progress", ...)
+      tsp_workflow_record_result(node_id=<parent>, result_status="in_progress", ...)
       and call out unfinished AC.
 Then step 5 of the atomic flow, once for the whole run.
 ```
@@ -154,7 +154,7 @@ and the specific missing-prereq list.
 ## State writes
 
 The session handle authorizes every write to the caller's attempt. A Build seed
-carries a claim; pass it to tsp.session.register. A non-null `attempt` in the
+carries a claim; pass it to tsp_session_register. A non-null `attempt` in the
 response marks a bound session: stay inside its scope and omit `node_ids` on
 every progress call (any you pass must equal the whole scope as a set). A
 hand-run session (`attempt=null`) passes every node it will work on in

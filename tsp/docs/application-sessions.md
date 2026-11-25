@@ -1,7 +1,7 @@
 # Worker session lifecycle
 
 Before using TSP tools, obtain an application session for this individual worker.
-Call `tsp_session_register` (canonical `tsp.session.register`) with
+Call `tsp_session_register` (canonical `tsp_session_register`) with
 `payload={"name":"<short task name>"}`; use the name a Build prompt gives you,
 otherwise follow the `name` field's description. Keep
 its private `session_handle` and `resume_handle` in this worker's private runtime
@@ -64,14 +64,14 @@ itself. Never infer another worker's context from a shared OAuth token or
 transport connection.
 
 A Build seed carries a claim for registration. A non-null `attempt` in the
-`tsp.session.register` response identifies a bound worker: omit `node_ids`
-on every `tsp.attempt.progress`, including the first milestone. A hand-run
+`tsp_session_register` response identifies a bound worker: omit `node_ids`
+on every `tsp_attempt_progress`, including the first milestone. A hand-run
 worker registered with `attempt=null` supplies all nodes it will work on in
 `node_ids` on its first progress only, opening its attempt. Supplied `node_ids`
 on a bound worker must equal the whole attempt scope as a set; a mismatch
 is refused with the bound nodes named.
 Record each node result with
-`tsp.workflow.record_result`, which writes the attempt report and retained status
+`tsp_workflow_record_result`, which writes the attempt report and retained status
 projection. At worker shutdown, finish those reports and handoff notes,
 then call `tsp_session_close`. Do not close an application session merely because
 one skill invocation finishes if the same worker will continue using TSP.
@@ -89,7 +89,7 @@ attempt; the old credential cannot write through it.
 
 Older plugins may still call `record_start`, `record_progress`, and `record_result`.
 These translate onto the caller's attempt without creating a second execution
-record. Current agents use `tsp.attempt.progress` and `tsp.workflow.record_result`
+record. Current agents use `tsp_attempt_progress` and `tsp_workflow_record_result`
 with their session handle; no run id is needed. `agent_session_id` is accepted for
 old callers but does not authorize a write. A supplied `work_ref` must match the
 attempt's reference. No call creates a run record or claims a leaf.

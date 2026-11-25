@@ -13,7 +13,7 @@ judge**. This skill fetches the node's intent, scope, and acceptance
 criteria through free MCP reads, reads the code locally, and rules
 each criterion itself. It costs the user no TSP credits.
 
-`tsp.alignment.assess` exists as a free deterministic keyword check
+`tsp_alignment_assess` exists as a free deterministic keyword check
 (no LLM, no credits) but binds criteria by vocabulary, not meaning —
 your own reading of the code is strictly better evidence. Never
 invoke a metered operation from this skill.
@@ -27,28 +27,28 @@ documented intent, scope, and acceptance criteria.
 ## Inputs
 
 - `node_id`: the TSP node to align against (required).
-- `plan_id` and `branch_name`: optional; default to session context.
+- `plan_id`: optional; defaults to session context.
 - `strictness`: `low` / `normal` / `high` (default `normal`). Higher
   strictness means reading more candidate files and always including
   the diff in what you weigh.
 
 ## Required MCP tools
 
-- `tsp.context.get` — resolve session context.
-- `tsp.node.execution_context` — fetch the node's intent, scope,
+- `tsp_context_get` — resolve session context.
+- `tsp_node_execution_context` — fetch the node's intent, scope,
   acceptance criteria, and `code_refs` (the files the plan already
   knows about).
-- `tsp.workflow.record_result` (optional, on aligned verdicts) —
+- `tsp_workflow_record_result` (optional, on aligned verdicts) —
   record acceptance evidence.
 
 ## Judging procedure
 
-1. `tsp.context.get` (and optionally `tsp.context.set` if missing).
-2. `tsp.node.execution_context(node_id=<node>, include_code_refs=true)`.
+1. `tsp_context_get` (and optionally `tsp_context_set` if missing).
+2. `tsp_node_execution_context(node_id=<node>, include_code_refs=true)`.
 3. Read the `code_refs` files. If `code_refs` is sparse, keyword-search
    the repo using terms from the node's title, intent, and scope.
 4. Read the current diff when relevant (`git diff main...HEAD` or the
-   unstaged diff).
+   unstaged diff). Never include credentials, tokens, API keys or .env contents in an excerpt or diff you send; skip those lines.
 5. Rule every acceptance criterion, referenced by its positional
    `criterion_id` (`ac-1` is the first criterion, then `ac-2`, …), with
    exactly one status:
@@ -84,7 +84,7 @@ only `criterion_id` / `status` / `note` — put a short evidence string
 (e.g. `"src/foo.py:42 — handles the retry"`) in `note`.
 
 ```text
-tsp.workflow.record_result(
+tsp_workflow_record_result(
   node_id=<node>,
   agent_session_id=<this-session>,
   result_status="complete" if all AC satisfied else "in_progress",
@@ -102,7 +102,7 @@ detail; then per-criterion status.
 
 ```text
 🧭 Alignment: <verdict> (confidence <0.0-1.0>)
-   plan: <plan_id>@<branch>
+   plan: <plan_id>
    node: <node_id> — <title>
 
 Findings:
@@ -135,5 +135,5 @@ edit the plan to update the affected scope/acceptance criteria.
 ## State writes
 
 This skill never writes plan state on its own. It only writes via
-`tsp.workflow.record_result` when the user explicitly asks to record
+`tsp_workflow_record_result` when the user explicitly asks to record
 the alignment verdict as session evidence.
