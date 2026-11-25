@@ -16,7 +16,7 @@ Run exactly this one command, in the session's current working directory (the
 user's repository), with the user's folder argument appended only if they gave one:
 
 ```sh
-npx -y @treestructuredplanning/gateway@0.5.0 connect $ARGUMENTS
+npx -y @treestructuredplanning/gateway@0.6.0 connect $ARGUMENTS
 ```
 
 The version is pinned so the code that runs is the published release this plugin
@@ -57,7 +57,7 @@ again is always safe.
 To undo everything, the user runs:
 
 ```sh
-npx -y @treestructuredplanning/gateway@0.5.0 disconnect
+npx -y @treestructuredplanning/gateway@0.6.0 disconnect
 ```
 
 That removes the login item and revokes the pairing in TSP. The full behaviour is

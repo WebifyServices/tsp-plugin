@@ -1,6 +1,6 @@
 {
 	"name": "tsp",
-	"version": "0.13.0",
+	"version": "0.13.1",
 	"description": "Tree-Structured Planning integration for coding agents. Read TSP plans, route implementation work, record progress back to the canvas, and reverse-map code to governing nodes. Learn more at https://treestructuredplanning.com.",
 	"author": {
 		"name": "Tree-Structured Planning",
@@ -51,46 +51,31 @@
 						{
 							"description": "Lists the signed-in account's plans",
 							"prompt": "List my TSP plans.",
-							"tools_triggered": [
-								"tsp_plans_list"
-							],
+							"tools_triggered": "tsp_plans_list",
 							"expected_behavior": "The assistant reads the account's plans and lists their names."
 						},
 						{
 							"description": "Summarizes the structure of one plan",
 							"prompt": "Give me a summary of the tree for my most recent plan.",
-							"tools_triggered": [
-								"tsp_plans_list",
-								"tsp_tree_summary"
-							],
+							"tools_triggered": "tsp_plans_list, tsp_tree_summary",
 							"expected_behavior": "The assistant finds the plan and describes its top-level structure."
 						},
 						{
 							"description": "Recommends what to work on next",
 							"prompt": "What should I work on next in my TSP plan?",
-							"tools_triggered": [
-								"tsp_plans_list",
-								"tsp_plan_next_actionable"
-							],
+							"tools_triggered": "tsp_plans_list, tsp_plan_next_actionable",
 							"expected_behavior": "The assistant names one node to pick up next and says why."
 						},
 						{
 							"description": "Finds nodes by topic",
 							"prompt": "Which nodes in my most recent plan mention sign-in?",
-							"tools_triggered": [
-								"tsp_plans_list",
-								"tsp_nodes_search"
-							],
+							"tools_triggered": "tsp_plans_list, tsp_nodes_search",
 							"expected_behavior": "The assistant lists the matching nodes by name."
 						},
 						{
 							"description": "Explains what a plan says about a topic",
 							"prompt": "Explain what my TSP plan says about onboarding.",
-							"tools_triggered": [
-								"tsp_plans_list",
-								"tsp_plan_semantic_search",
-								"tsp_node_get"
-							],
+							"tools_triggered": "tsp_plans_list, tsp_plan_semantic_search, tsp_node_get",
 							"expected_behavior": "The assistant gives a short answer and names the nodes that govern the topic."
 						}
 					],
